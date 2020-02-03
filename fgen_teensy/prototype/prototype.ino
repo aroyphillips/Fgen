@@ -1,3 +1,5 @@
+#include <ArduinoJson.h>
+
 #include <SPI.h>  //SPI library for Arduino
 #include <math.h>
 #include <string.h>
@@ -11,6 +13,7 @@ String ramp_dlm = "^"; // followed by these numbers: is on, distancestart
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(9600);
   SPI.begin();
   pinMode(AOut, OUTPUT);
   analogWriteResolution(12);
@@ -34,6 +37,8 @@ void loop() {
 
 }
 
+
+
 void stepUp(String in) {
   
    int amp = in.at(0) -'0';
@@ -42,5 +47,5 @@ void stepUp(String in) {
   analogWrite(AOut, amp*VAL2DAC);
   delay(1000)
   analogWrite(AOut, amp2*VAL2DAC);
-  analogWrite(Aout, amp3*VAL2DAC);
+  analogWrite(AOut, amp3*VAL2DAC);
 }
