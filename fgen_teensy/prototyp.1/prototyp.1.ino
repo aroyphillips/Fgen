@@ -4,10 +4,15 @@
 float VAL2DAC = 4096/40;
 char ramp_dlm = '^'; // followed by these numbers: is on, distancestart
 
-// Incoming Bit Stream should look like this: '<-1.150.10^123+123
+// Incoming Bit Stream should look like this: '<s1,2,10p0,2,150,10t0,2,150,10,20,10g0,2,120,100,10r0,3,60,10^0,3,150,100>'
 
 const byte numChars = 32;
-char receivedChars[numChars];
+char DC[numChars];
+char pulse[numChars];
+char train[numChars];
+char gaus[numChars];
+char ramp[numChars];
+char tri[numChars];
 
 boolean newData = false;
 
@@ -31,9 +36,18 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         rc = Serial.read();
 
-        if (recvInProgress == true) {
+       
+        if (rc == startMarker) {
+          recvInProgress = true;
+        }
+        
+        else if (recvInProgress == true) {
             if (rc != endMarker) {
-                receivedChars[ndx] = rc;
+                switch(n) {
+                  case 's':
+                    
+        
+                }
                 ndx++;
                 if (ndx >= numChars) {
                     ndx = numChars - 1;
@@ -45,10 +59,6 @@ void recvWithStartEndMarkers() {
                 ndx = 0;
                 newData = true;
             }
-        }
-
-        else if (rc == startMarker) {
-            recvInProgress = true;
         }
     }
 }
