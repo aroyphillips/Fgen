@@ -26,6 +26,9 @@ boolean isRamp = false;
 boolean isTri = false;
 
 int DCamp;
+int isDCactive;
+int DCdelay;
+
 
 void setup() {
     Serial.begin(9600);
@@ -34,7 +37,7 @@ void setup() {
 
 void loop() {
     recvWithStartEndMarkers();
-    runNewData();
+    buildNewData();
 }
 
 void recvWithStartEndMarkers() {
@@ -197,13 +200,14 @@ void parseDCData() {
     
   char * strtokIndx; // this is used by strtok() as an index
   
-  strtokIndx = strtok(receivedChars,",");      // get the first part - the string
-  strcpy(messageFromPC, strtokIndx); // copy it to messageFromPC
   
-  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-  amp = atoi(strtokIndx);     // convert this part to an integer
+  strtokIndx = strtok(DC, ","); // this continues where the previous call left off
+  isDCactive = atoi(strtokIndx);     // convert this part to an integer
   
   strtokIndx = strtok(NULL, ",");
-  floatFromPC = atof(strtokIndx);     // convert this part to a float
+  DCamp = atoi(strtokIndx);     // convert this part to a integer
+
+  strtokIndx = strtok(NULL, ",");
+  DCdelay = atoi(strtokIndx);     // convert this part to a integer
 
 }
