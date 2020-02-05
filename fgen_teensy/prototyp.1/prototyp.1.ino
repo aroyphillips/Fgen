@@ -25,6 +25,8 @@ boolean isGaus = false;
 boolean isRamp = false;
 boolean isTri = false;
 
+int DCamp;
+
 void setup() {
     Serial.begin(9600);
     Serial.println("<Teensy is ready>");
@@ -187,4 +189,21 @@ void clearBools() {
 
 void noFlags() {
   Serial.print("No shape flags read");
+}
+
+void parseDCData() {
+
+    // split the data into its parts
+    
+  char * strtokIndx; // this is used by strtok() as an index
+  
+  strtokIndx = strtok(receivedChars,",");      // get the first part - the string
+  strcpy(messageFromPC, strtokIndx); // copy it to messageFromPC
+  
+  strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+  amp = atoi(strtokIndx);     // convert this part to an integer
+  
+  strtokIndx = strtok(NULL, ",");
+  floatFromPC = atof(strtokIndx);     // convert this part to a float
+
 }
