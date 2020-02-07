@@ -6,9 +6,8 @@
 
 
 float VAL2DAC = 4096/40;
-char ramp_dlm = '^'; // followed by these numbers: is on, distancestart
 
-// Incoming Bit Stream should look like this: '<s1,2,10p0,2,150,10!t0,2,150,10,20,10!g0,2,120,100,10!r0,3,60,10!^0,3,150,100!>'
+// Incoming Bit Stream should look like this: '<s1,2,10!p0,2,150,10!t0,2,150,10,20,10!g0,2,120,100,10!r0,3,60,10!^0,3,150,100!>'
 
 const byte numChars = 32;
 char DC[numChars];
