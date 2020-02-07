@@ -3,6 +3,8 @@
 
 #define AOut A22
 #define MAXAOUT 5
+
+
 float VAL2DAC = 4096/40;
 char ramp_dlm = '^'; // followed by these numbers: is on, distancestart
 
@@ -25,12 +27,15 @@ boolean isGaus = false;
 boolean isRamp = false;
 boolean isTri = false;
 
-int DCamp;
-int isDCactive;
-int DCdelay;
+// DC parameters
+boolean isDCactive;
+float DCamp;
+float DCdelay;
 
 
 void setup() {
+    pinMode(AOut, OUTPUT);
+    analogWriteResolution(12);
     Serial.begin(9600);
     Serial.println("<Teensy is ready>");
 }
@@ -58,7 +63,7 @@ void recvWithStartEndMarkers() {
         
         else if (recvInProgress == true) {
           
-         
+            // Read parameters for different output shapes
             if (rc != endMarker) {
                 switch(rc) {
                   case 's':
@@ -171,13 +176,17 @@ void buildNewData() {
         newData = false;
     }  
     if (DC[0] == '1'){
-      outputVolts(DC);
+      parseDCData(DC);
+      outputVolts(isDCactive, DCamp, DCdelay);
     }
 }
 
 
-void outputVolts(char DC[]){
-   
+void outputVolts(boolean activeDC, float ampDC, float delayDC){
+   if (activeDC){
+    delay(delayDC);
+    analogWrite(AOut, ampDC*VAL2DAC); 
+   }
 }  
 
 
@@ -194,20 +203,20 @@ void noFlags() {
   Serial.print("No shape flags read");
 }
 
-void parseDCData() {
+void parseDCData(char DCstr[]) {
 
     // split the data into its parts
     
   char * strtokIndx; // this is used by strtok() as an index
   
   
-  strtokIndx = strtok(DC, ","); // this continues where the previous call left off
-  isDCactive = atoi(strtokIndx);     // convert this part to an integer
+  strtokIndx = strtok(DCstr, ","); // this continues where the previous call left off
+  isDCactive =(strtokIndx=='1');     // convert this part to an integer
   
   strtokIndx = strtok(NULL, ",");
-  DCamp = atoi(strtokIndx);     // convert this part to a integer
+  DCamp = atof(strtokIndx);     // convert this part to a integer
 
   strtokIndx = strtok(NULL, ",");
-  DCdelay = atoi(strtokIndx);     // convert this part to a integer
+  DCdelay = atof(strtokIndx);     // convert this part to a integer
 
 }
