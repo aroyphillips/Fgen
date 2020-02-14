@@ -5,7 +5,7 @@
 #define MAXAOUT 5
 
 
-float VAL2DAC = 4096/40;
+float VAL2DAC = 4095/35; // Volt = val*3.3/4095 --> 
 
 // Incoming Bit Stream should look like this: '<s1,2,10!p0,2,150,10!t0,2,150,10,20,10!^0,3,150,100!g0,2,120,100,10!r0,3,60,10!>'
 
