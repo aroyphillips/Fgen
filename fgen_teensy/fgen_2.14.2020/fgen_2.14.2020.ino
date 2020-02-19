@@ -3,6 +3,7 @@
 
 #define AOut A22
 #define MAXAOUT 5
+#define distPin A2;
 
 
 float VAL2DAC = 4095/35; // Volt = val*3.3/4095 --> 
@@ -226,11 +227,14 @@ void buildNewData() {
         parseTriData(tri);
         parseGausData(gaus);
         parseRampData(ramp);
+
+        
         outputVolts(isDCactive, DCamp, DCdelay);
         newData = false;    
       }
        
 }
+
 
 
 void outputVolts(boolean DCactiv, float ampDC, float delayDC){
@@ -245,6 +249,7 @@ void outputVolts(boolean DCactiv, float ampDC, float delayDC){
 
 
 void clearBools() {
+  // Resets which shape the Teensy is reading
   isDC = false;
   isPulse = false;
   isTrain = false;

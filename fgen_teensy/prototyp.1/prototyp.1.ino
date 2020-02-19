@@ -38,6 +38,7 @@ boolean isPulseActive;
 float pulseAmp;
 float pulseDuration;
 float pulseDelay;
+float pulseEnd;
 
 // Pulse Train params
 
@@ -47,6 +48,7 @@ float trainDuration;
 float trainDelay;
 float trainFreq;
 float trainWidth;
+float trainEnd;
 
 // Triangle Pulse params
 
@@ -55,6 +57,9 @@ float triAmp;
 float triDuration;
 float triPeak;
 float triDelay;
+float triEnd;
+float triUpSlope;
+float triDownSlope;
 
 // Gaussian params
 boolean isGausActive;
@@ -72,6 +77,10 @@ float rampDelay;
 
 
 
+// Output Voltage
+float value;
+
+
 
 void setup() {
     pinMode(AOut, OUTPUT);
@@ -84,7 +93,12 @@ void setup() {
 void loop() {
     recvWithStartEndMarkers();
     buildNewData();
+    outputVolts;
 }
+
+
+
+// Receives string from serial and stores values
 
 void recvWithStartEndMarkers() {
     static boolean recvInProgress = false;
@@ -226,14 +240,15 @@ void buildNewData() {
         parseTriData(tri);
         parseGausData(gaus);
         parseRampData(ramp);
-        outputVolts(isDCactive, DCamp, DCdelay);
         newData = false;    
       }
        
 }
 
 
-void outputVolts(boolean DCactiv, float ampDC, float delayDC){
+void outputVolts(){
+
+    /*
     if (DCactiv){
     delay(delayDC);
     analogWrite(AOut, ampDC*VAL2DAC);
@@ -241,6 +256,7 @@ void outputVolts(boolean DCactiv, float ampDC, float delayDC){
     else{
       analogWrite(AOut,0); 
     }
+    */
 }  
 
 
@@ -296,6 +312,8 @@ void parsePulseData(char pulse_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   pulseDelay = atof(strtokIndx);     // convert this part to a float
+
+  pulseEnd = pulseDelay + pulseDuration;
   
   Serial.print("Is Pulse?");
   Serial.println(isPulseActive);
@@ -333,7 +351,7 @@ void parseTrainData(char train_str[]) {
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
   
-  
+  trainEnd = trainDelay + trainDuration;
   Serial.print("Is Train?");
   Serial.println(isTrainActive);
   Serial.print("Train Amp");
@@ -372,7 +390,12 @@ void parseTriData(char tri_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   triDelay = atof(strtokIndx);     // convert this part to a float
-  
+
+
+
+  triEnd = triDuration + triDelay;
+  triUpSlope = triAmp / (triPeak-triDelay);
+  triDownSlope = triAmp /(triPeak-triEnd);
   
   Serial.print("Is Triangle?");
   Serial.println(isTriActive);
