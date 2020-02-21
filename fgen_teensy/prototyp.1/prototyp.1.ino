@@ -2,6 +2,9 @@
 
 
 #define AOut A22
+#define rstPin 25
+#define distPin A21
+
 #define MAXAOUT 5
 
 
@@ -9,6 +12,8 @@ float VAL2DAC = 4095/35; // Volt = val*3.3/4095 -->
 
 // Incoming Bit Stream should look like this: '<s1,2,10!p0,2,150,10!t0,2,150,10,20,10!^0,3,150,100!g0,2,120,100,10!r0,3,60,10!>'
 
+
+// registers to store incoming data
 const byte numChars = 32;
 char DC[numChars];
 char pulse[numChars];
@@ -17,6 +22,8 @@ char gaus[numChars];
 char ramp[numChars];
 char tri[numChars];
 
+
+// booleans to guide reception of serial data
 boolean newData = false;
 
 boolean isDC = false;
@@ -77,14 +84,23 @@ float rampDelay;
 
 
 
-// Output Voltage
+// Output Voltage variables
 float value;
 
+boolean hasStepped;
+boolean hasPulsed;
+
+// Distance
+float dist;
+float distCorrection;
 
 
 void setup() {
     pinMode(AOut, OUTPUT);
+    pinMode(rstPin, INPUT);
+    pinMode(distPin, INPUT);
     analogWriteResolution(12);
+    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, FALLING);
     Serial.begin(9600);
     Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
@@ -93,7 +109,7 @@ void setup() {
 void loop() {
     recvWithStartEndMarkers();
     buildNewData();
-    outputVolts;
+    outputVolts();
 }
 
 
@@ -247,16 +263,35 @@ void buildNewData() {
 
 
 void outputVolts(){
+    dist = analogRead(distPin);
+    
 
-    /*
-    if (DCactiv){
-    delay(delayDC);
-    analogWrite(AOut, ampDC*VAL2DAC);
+    // check each possible shape output and modify output volt accordingly
+
+    // DC Step
+    if (isDCactive && (dist > DCdelay) && !hasStepped){
+      value = value + DCamp;
+      hasStepped = true;
     }
-    else{
-      analogWrite(AOut,0); 
+
+    // Pulse
+    if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed){
+      value = value + pulseAmp;
+      hasPulsed = true;
     }
-    */
+    else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
+      value = value - pulseAmp;
+      hasPulsed = false;
+    }
+    // Triangle Pulse
+
+    if (isTriActive && (dist>triDelay) && (dist<triPeak)){
+      value = value + triUpSlope*(dist-triDelay);
+    }
+    else if(isTriActive && (dist>triPeak) && (dist<triEnd)){
+      value = value - triDownSlope*(dist-triPeak);
+    }
+    Serial.println(value);
 }  
 
 
@@ -478,6 +513,15 @@ void parseRampData(char r_str[]) {
   Serial.print("Ramp Delay");
   Serial.println(rampDelay); 
 }
+
+// INTERUPT SERVICE ROUTINE
+
+void reset_distance(){
+  value = 0;
+  distCorrection = analogRead(distPin);
+}
+
+
 
 
 // to get variable type
