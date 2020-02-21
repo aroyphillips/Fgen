@@ -297,7 +297,7 @@ void outputVolts(){
     }
 
     analogWrite(AOut, value*VAL2DAC);
-    //Serial.println(dist-triDelay);
+    //Serial.println(dist);
 }  
 
 
