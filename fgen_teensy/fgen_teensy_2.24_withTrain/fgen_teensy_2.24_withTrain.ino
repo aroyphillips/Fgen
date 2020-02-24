@@ -18,7 +18,6 @@ const byte numChars = 32;
 char pulse[14];
 char train[numChars];
 char gaus[numChars];
-char ramp[numChars];
 char tri[numChars];
 
 
@@ -28,7 +27,6 @@ boolean newData = false;
 boolean isPulse = false;
 boolean isTrain = false;
 boolean isGaus = false;
-boolean isRamp = false;
 boolean isTri = false;
 
 //Incoming Paramters
@@ -49,6 +47,9 @@ float trainDelay;
 float trainFreq;
 float trainWidth;
 float trainEnd;
+float ptStart; // sliding location of pulse starts
+float trainT; // period of pulse = 1/freq
+boolean hasSpiked;
 
 // Triangle Pulse params
 
@@ -67,14 +68,6 @@ float gausAmp;
 float gausCenter;
 float gausWidth;
 float gausDelay;
-
-// Ramp params
-boolean isRampActive;
-float rampSlope;
-float rampAmp;
-float rampDuration;
-float rampDelay;
-
 
 
 // Output Voltage variables
@@ -147,18 +140,6 @@ void recvWithStartEndMarkers() {
                     ndx = 0;
                     isTri = true;
                     break;  
-                  case 'g':
-                    // Receiving parameters for Gaussian
-                    clearBools();
-                    ndx = 0;
-                    isGaus = true;
-                    break;
-                  case 'r':
-                    // Receiving parameters for Ramp
-                    clearBools();
-                    ndx = 0;
-                    isRamp = true;
-                    break;
 
                   default:
                    // Receiving parameters based on flag
@@ -183,14 +164,6 @@ void recvWithStartEndMarkers() {
                     }
                     else if (rc!='g'){
                       gaus[ndx] = rc;
-                      ndx++;
-                    }
-                   }
-                   else if (isRamp){
-                    if (rc == phraseEnd){
-                    }
-                    else if (rc!= 'r'){
-                      ramp[ndx] = rc;
                       ndx++;
                     }
                    }
@@ -227,7 +200,6 @@ void buildNewData() {
         parseTrainData(train);
         parseTriData(tri);
         parseGausData(gaus);
-        parseRampData(ramp);
         newData = false;  
       }
        
@@ -245,6 +217,8 @@ void outputVolts(){
 
     // check each possible shape output and modify output volt accordingly
 
+
+
     // Pulse
     if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed){
       value = value + pulseAmp;
@@ -256,8 +230,41 @@ void outputVolts(){
     }
 
 
+    // Pulse Train
+
+    if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
+      //Serial.print("Spiking ");
+      //Serial.println(ptStart);
+      if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+        value = value + trainAmp;
+        Serial.print("Spiking up:");
+        Serial.print(dist);
+        Serial.print(" start:");
+        Serial.print(ptStart);
+        Serial.print(" width: ");
+        Serial.print(trainWidth);
+        Serial.print(" Output: ");
+        Serial.println(value);
+        hasSpiked = true;
+      }
+      else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+        value = value - trainAmp;
+        hasSpiked = false;
+        ptStart = ptStart + trainT;
+        Serial.print("Spiking Down:");
+        Serial.print(dist);
+        Serial.print(" start:");
+        Serial.print(ptStart);
+        Serial.print(" period: ");
+        Serial.print(trainT);
+        Serial.print(" Output: ");
+        Serial.println(value);
+      }
+    }
+
+
     
-    // Triangle Pulse
+    // Triangle Pulse (right now needs to be only activated on its own
 
     if (isTriActive && (dist>triDelay) && (dist<triPeak)){
       //Serial.print("going up:");
@@ -281,7 +288,6 @@ void clearBools() {
   isPulse = false;
   isTrain = false;
   isGaus = false;
-  isRamp = false;
   isTri = false;
 }
 
@@ -350,6 +356,10 @@ void parseTrainData(char train_str[]) {
   trainWidth = atof(strtokIndx);     // convert this part to a float
   
   trainEnd = trainDelay + trainDuration;
+  ptStart = trainDelay;
+  hasSpiked = false;
+  trainT = 1/trainFreq;
+  
   Serial.print("Is Train?");
   Serial.println(isTrainActive);
   Serial.print("Train Amp");
@@ -449,41 +459,6 @@ void parseGausData(char g_str[]) {
   Serial.println(gausDelay); 
 }
 
-void parseRampData(char r_str[]) {
-
-    // split the data into its parts
-    
-  char * strtokIndx; // this is used by strtok() as an index
-
-  strtokIndx = strtok(r_str, ","); // this continues where the previous call left off
-  isRampActive =(*strtokIndx=='1');     // converts char* to a boolean
-
-
-  strtokIndx = strtok(NULL, ",");
-  rampSlope = atof(strtokIndx);     // convert char* to a float
-
-  strtokIndx = strtok(NULL, ",");
-  rampAmp = atof(strtokIndx);
-
-  strtokIndx = strtok(NULL, ",");
-  rampDuration = atof(strtokIndx);     // convert this part to a float
-
-  strtokIndx = strtok(NULL, ",");
-  rampDelay = atof(strtokIndx);     // convert this part to a float
-  
-  
-  Serial.print("Is Ramp?");
-  Serial.println(isRampActive);
-  Serial.print("Ramp slope:");
-  Serial.println(rampSlope);
-  Serial.print("Ramp Amp");
-  Serial.println(rampAmp);
-  Serial.print("Ramp Duration");
-  Serial.println(rampDuration); 
-  Serial.print("Ramp Delay");
-  Serial.println(rampDelay); 
-}
-
 // INTERUPT SERVICE ROUTINE
 
 void reset_distance(){
@@ -494,6 +469,8 @@ void reset_distance(){
     } 
   analogWrite(AOut,0);
   buildNewData();
+  ptStart = trainDelay;
+  hasSpiked = false;
 }
 
 
