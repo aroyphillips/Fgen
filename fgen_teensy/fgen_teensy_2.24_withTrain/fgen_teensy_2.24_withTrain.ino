@@ -15,7 +15,7 @@ float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 -->
 
 // registers to store incoming data
 const byte numChars = 32;
-char pulse[14];
+char pulse[12];
 char train[numChars];
 char gaus[numChars];
 char tri[numChars];
@@ -28,6 +28,10 @@ boolean isPulse = false;
 boolean isTrain = false;
 boolean isGaus = false;
 boolean isTri = false;
+
+// store timing to avoid using delays
+unsigned long beforeRxMillis;
+unsigned long afterRxMillis;
 
 //Incoming Paramters
 
@@ -73,8 +77,9 @@ float gausDelay;
 // Output Voltage variables
 volatile float value;
 
-boolean hasStepped;
-boolean hasPulsed;
+boolean hasPulsedThisLap = false; //Controls pulse, so only pulses max once per lap
+boolean hasPulsed = false; // indicates whether pulse needs to be brought to resting output
+
 
 // Distance
 float dist;
@@ -88,8 +93,8 @@ void setup() {
     analogWriteResolution(12);
     analogReadResolution(12);
     attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, RISING);
-    Serial.begin(9600);
-    Serial.println("<Teensy is ready>");
+    Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
+    //Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
 }
 
@@ -109,12 +114,15 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char phraseEnd = '!';
     char rc;
+    
+    
     while (Serial.available() > 0 && newData == false) {
         rc = Serial.read();
-        delay(100);
+        //delay(100);
        
         if (rc == startMarker) {
           recvInProgress = true;
+          beforeRxMillis = millis();
         }
         
         else if (recvInProgress == true) {
@@ -191,11 +199,11 @@ void recvWithStartEndMarkers() {
             }
         }
     }
+    
 }
 
 void buildNewData() {
     if (newData == true) {
-        Serial.println("Output");
         parsePulseData(pulse);
         parseTrainData(train);
         parseTriData(tri);
@@ -217,14 +225,18 @@ void outputVolts(){
 
     // check each possible shape output and modify output volt accordingly
 
-
-
     // Pulse
-    if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed){
+    if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap){
+
       value = value + pulseAmp;
       hasPulsed = true;
+      hasPulsedThisLap = true;
+      //Serial.print("pulsing: ");
+      //Serial.println(dist);
     }
     else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
+      //Serial.print("pulse down: ");
+      //Serial.println(dist);
       value = value - pulseAmp;
       hasPulsed = false;
     }
@@ -233,10 +245,9 @@ void outputVolts(){
     // Pulse Train
 
     if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
-      //Serial.print("Spiking ");
-      //Serial.println(ptStart);
       if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
         value = value + trainAmp;
+        /*
         Serial.print("Spiking up:");
         Serial.print(dist);
         Serial.print(" start:");
@@ -246,11 +257,14 @@ void outputVolts(){
         Serial.print(" Output: ");
         Serial.println(value);
         hasSpiked = true;
+        */
       }
       else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
         value = value - trainAmp;
         hasSpiked = false;
         ptStart = ptStart + trainT;
+
+        /*
         Serial.print("Spiking Down:");
         Serial.print(dist);
         Serial.print(" start:");
@@ -259,6 +273,7 @@ void outputVolts(){
         Serial.print(trainT);
         Serial.print(" Output: ");
         Serial.println(value);
+        */
       }
     }
 
@@ -276,7 +291,6 @@ void outputVolts(){
         value = triDownSlope*(dist-triEnd);
     }
     else if (isTriActive && (dist<triDelay || dist>triEnd)){
-      Serial.println("Cleared");
       value = 0;
     }
     analogWrite(AOut, value*VAL2DAC);
@@ -318,7 +332,9 @@ void parsePulseData(char pulse_str[]) {
   pulseDelay = atof(strtokIndx);     // convert this part to a float
 
   pulseEnd = pulseDelay + pulseDuration;
-  
+
+
+  /*
   Serial.print("Is Pulse?");
   Serial.println(isPulseActive);
   Serial.print("Pulse Amp");
@@ -326,7 +342,8 @@ void parsePulseData(char pulse_str[]) {
   Serial.print("Pulse Duration:");
   Serial.println(pulseDuration);
   Serial.print("Pulse Delay");
-  Serial.println(pulseDelay); 
+  Serial.println(pulseDelay);
+  */
 }
 
 
@@ -359,7 +376,8 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
   trainT = 1/trainFreq;
-  
+
+  /*
   Serial.print("Is Train?");
   Serial.println(isTrainActive);
   Serial.print("Train Amp");
@@ -372,7 +390,7 @@ void parseTrainData(char train_str[]) {
   Serial.println(trainFreq);
   Serial.print("Train Width");
   Serial.println(trainWidth);
-   
+  */ 
 }
 
 
@@ -404,7 +422,8 @@ void parseTriData(char tri_str[]) {
   triEnd = triDuration + triDelay;
   triUpSlope = triAmp / (triPeak-triDelay);
   triDownSlope = triAmp /(triPeak-triEnd);
-  
+
+  /*
   Serial.print("Is Triangle?");
   Serial.println(isTriActive);
   Serial.print("Triangle Amp");
@@ -421,7 +440,7 @@ void parseTriData(char tri_str[]) {
   Serial.println(triDownSlope);
   Serial.print("Triangle End");
   Serial.println(triEnd); 
-  
+  */
 }
 
 void parseGausData(char g_str[]) {
@@ -446,7 +465,7 @@ void parseGausData(char g_str[]) {
   strtokIndx = strtok(NULL, ",");
   gausDelay = atof(strtokIndx);     // convert this part to a float
   
-  
+  /*
   Serial.print("Is Gaussian?");
   Serial.println(isGausActive);
   Serial.print("Guassian Amp");
@@ -456,7 +475,8 @@ void parseGausData(char g_str[]) {
   Serial.print("Gaussian Width");
   Serial.println(gausWidth); 
   Serial.print("Gaussian Delay");
-  Serial.println(gausDelay); 
+  Serial.println(gausDelay);
+  */ 
 }
 
 // INTERUPT SERVICE ROUTINE
@@ -471,6 +491,8 @@ void reset_distance(){
   buildNewData();
   ptStart = trainDelay;
   hasSpiked = false;
+  hasPulsed = false;
+  hasPulsedThisLap = false;
 }
 
 
