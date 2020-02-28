@@ -10,13 +10,13 @@
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2,150,10,20,10!^1,3,100,80,30!g0,2,120,100,10!r0,3,60,10!>'
+// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2.00,150,010,00.017,00.002!^1,2.50,100,080,030!g0,2,120,100,10!r0,3,60,10!>'
 
 
 // registers to store incoming data
 const byte numChars = 32;
 char pulse[14];
-char train[numChars];
+char train[28];
 char gaus[numChars];
 char tri[numChars];
 
@@ -307,7 +307,7 @@ void clearBools() {
 }
 
 void noFlags() {
-  Serial.println("No shape flags read");
+  //Serial.println("No shape flags read");
 }
 
 
@@ -330,6 +330,7 @@ void parsePulseData(char pulse_str[]) {
   pulseDuration = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
+  Serial.println(strtokIndx);
   pulseDelay = atof(strtokIndx);     // convert this part to a float
 
   pulseEnd = pulseDelay + pulseDuration;

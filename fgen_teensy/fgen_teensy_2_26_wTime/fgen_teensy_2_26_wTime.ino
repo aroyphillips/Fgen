@@ -10,12 +10,12 @@
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2,150,10,20,10!^1,3,100,80,30!g0,2,120,100,10!r0,3,60,10!>'
+// Incoming Bit Stream should look like this: '<p0,2.5,150,10!t0,2.5,150,10,20,10!^1,3,100,80,30!g0,2,120,100,10!r0,3,60,10!>'
 
 
 // registers to store incoming data
 const byte numChars = 32;
-char pulse[14];
+char pulse[12];
 char train[numChars];
 char gaus[numChars];
 char tri[numChars];
@@ -35,6 +35,11 @@ unsigned long afterRxMillis;
 
 //Incoming Paramters
 
+//Dependent parameter
+boolean isVelo = false;
+boolean isDist = false;
+boolean isTime = false;
+
 // Pulse params
 boolean isPulseActive;
 float pulseAmp;
@@ -53,6 +58,8 @@ float trainEnd;
 float ptStart; // sliding location of pulse starts
 float trainT; // period of pulse = 1/freq
 boolean hasSpiked;
+
+//Time based pulse
 
 // Triangle Pulse params
 
@@ -129,6 +136,24 @@ void recvWithStartEndMarkers() {
             // Read parameters for different output shapes
             if (rc != endMarker) {
                 switch(rc) {
+                  case 's':
+                    // Time parameter
+                    clearParamBools();
+                    isTime = true;
+                    break;
+
+                  case 'd':
+                    // Dist parameter
+                    clearParamBools();
+                    isDist = true;
+                    break;
+
+                  case 'v':
+                    // Velo parameter
+                    clearParamBools();
+                    isVelo = true;
+                    break;
+                    
                   case 'p':
                     // Receiving parameters for Pulse 
                     clearBools();
@@ -241,44 +266,86 @@ void outputVolts(){
     }
 
 
-    // Pulse Train
+    // Pulse Train for Distance:
+    if (isDist){
+      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
+        // in location of spikes
+        if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
 
-    if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
-      if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
-        value = value + trainAmp;
+          // spiking up
+          value = value + trainAmp;
+  
+          /*
+          Serial.print("Spiking up:");
+          Serial.print(dist);
+          Serial.print(" start:");
+          Serial.print(ptStart);
+          Serial.print(" width: ");
+          Serial.print(trainWidth);
+          Serial.print(" Output: ");
+          Serial.println(value);
+          */
+          hasSpiked = true;
+          
+        }
+        else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
 
-        /*
-        Serial.print("Spiking up:");
-        Serial.print(dist);
-        Serial.print(" start:");
-        Serial.print(ptStart);
-        Serial.print(" width: ");
-        Serial.print(trainWidth);
-        Serial.print(" Output: ");
-        Serial.println(value);
-        */
-        hasSpiked = true;
-        
-      }
-      else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
-        value = value - trainAmp;
-        hasSpiked = false;
-        ptStart = ptStart + trainT;
-
-        /*
-        Serial.print("Spiking Down:");
-        Serial.print(dist);
-        Serial.print(" start:");
-        Serial.print(ptStart);
-        Serial.print(" period: ");
-        Serial.print(trainT);
-        Serial.print(" Output: ");
-        Serial.println(value);
-        */
+          // resting output
+          value = value - trainAmp;
+          hasSpiked = false;
+          ptStart = ptStart + trainT;
+  
+          /*
+          Serial.print("Spiking Down:");
+          Serial.print(dist);
+          Serial.print(" start:");
+          Serial.print(ptStart);
+          Serial.print(" period: ");
+          Serial.print(trainT);
+          Serial.print(" Output: ");
+          Serial.println(value);
+          */
+        }
       }
     }
 
-
+    //Time based train
+    else if(isTime){
+      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
+        if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+          value = value + trainAmp;
+  
+          /*
+          Serial.print("Spiking up:");
+          Serial.print(dist);
+          Serial.print(" start:");
+          Serial.print(ptStart);
+          Serial.print(" width: ");
+          Serial.print(trainWidth);
+          Serial.print(" Output: ");
+          Serial.println(value);
+          */
+          hasSpiked = true;
+          
+        }
+        else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+          value = value - trainAmp;
+          hasSpiked = false;
+          ptStart = ptStart + trainT;
+  
+          /*
+          Serial.print("Spiking Down:");
+          Serial.print(dist);
+          Serial.print(" start:");
+          Serial.print(ptStart);
+          Serial.print(" period: ");
+          Serial.print(trainT);
+          Serial.print(" Output: ");
+          Serial.println(value);
+          */
+        }
+      }
+    }
     
     // Triangle Pulse (right now needs to be only activated on its own
 
@@ -300,10 +367,18 @@ void outputVolts(){
 
 
 void clearBools() {
+  // Clears Reception booleans to make sure only receiving one at a time
   isPulse = false;
   isTrain = false;
   isGaus = false;
   isTri = false;
+}
+
+void clearParamBools(){
+  // Clears dependent parameter booleans
+  isTime = false;
+  isDist = false;
+  isVelo = false;
 }
 
 void noFlags() {
