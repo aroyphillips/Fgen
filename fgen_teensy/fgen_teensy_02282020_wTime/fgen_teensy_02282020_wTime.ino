@@ -10,7 +10,7 @@
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<p0,2.5,150,10!t0,2.5,150,10,20,10!^1,3,100,80,30!g0,2,120,100,10!r0,3,60,10!>'
+// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2.00,150,010,00.017,00.002!^1,2.50,100,080,030!g0,2,120,100,10!r0,3,60,10!>'
 
 
 // registers to store incoming data
@@ -56,11 +56,12 @@ float trainDelay;
 float trainWidth;
 float trainEnd;
 float ptStart; // sliding location of pulse starts
-float trainT; // period of pulse = 1/freq
-boolean hasSpiked = false;
-boolean hasSpikedThisLap = false;
+float trainT; // period of pulse 
+float trainTs; // seconds period
+unsigned long ptStartTime;
 
-//Time based pulse train params
+boolean hasSpiked;
+boolean hasSpikedThisLap = false;
 
 // Triangle Pulse params
 
@@ -71,7 +72,7 @@ float triPeak;
 float triDelay;
 float triEnd;
 float triUpSlope;
-float triDownSlope;
+static float triDownSlope;
 
 // Gaussian params
 boolean isGausActive;
@@ -106,6 +107,7 @@ void setup() {
 }
 
 void loop() {
+    Serial.println(1);
     recvWithStartEndMarkers();
     outputVolts();
 }
@@ -124,6 +126,7 @@ void recvWithStartEndMarkers() {
     
     
     while (Serial.available() > 0 && newData == false) {
+        
         rc = Serial.read();
         //delay(100);
        
@@ -250,6 +253,7 @@ void outputVolts(){
     //dist = analogRead(distPin)/VAL2DAC*100;
 
     // check each possible shape output and modify output volt accordingly
+
     // Pulse
     if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap){
 
@@ -267,13 +271,12 @@ void outputVolts(){
     }
 
 
-    // Pulse Train for Distance:
+    // Pulse Train
+
+    //distance based train
     if (isDist){
       if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
-        // in location of spikes
         if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
-
-          // spiking up
           value = value + trainAmp;
   
           /*
@@ -290,8 +293,6 @@ void outputVolts(){
           
         }
         else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
-
-          // resting output
           value = value - trainAmp;
           hasSpiked = false;
           ptStart = ptStart + trainT;
@@ -310,71 +311,85 @@ void outputVolts(){
       }
     }
 
-    //Time based train
-    else if(isTime){
+    // Time based train
+     else if(isTime){
       if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
         if (!hasSpikedThisLap){
           hasSpikedThisLap = true;
-          unsigned long ptStart = millis();
+          ptStartTime = millis();
           currTime = millis();
+
+          /*
+          Serial.println(ptStart);
+          Serial.println(currTime); 
+          Serial.println((currTime-ptStart)<=trainWidth*1000);
+          Serial.println((currTime-ptStart)>=0);
+          Serial.println(!hasSpiked);
+          */
         }
-        
-        if (!hasSpiked && ((currTime-ptStart)<=trainWidth) && ((currTime-ptStart)>=0)){
+        Serial.println(ptStartTime);
+        Serial.println(currTime);
+        if (!hasSpiked && ((currTime-ptStartTime)<=trainWidth*1000) && ((currTime-ptStartTime)>=0)){
           value = value + trainAmp;
   
           /*
           Serial.print("Spiking up:");
-          Serial.print(dist);
+          Serial.print(currTime);
           Serial.print(" start:");
           Serial.print(ptStart);
           Serial.print(" width: ");
-          Serial.print(trainWidth);
+          Serial.print(trainWidth*1000);
           Serial.print(" Output: ");
           Serial.println(value);
           */
           hasSpiked = true;
           
         }
-        else if(hasSpiked && (currTime-ptStart)<trainT && ((currTime-ptStart)>trainWidth)){
+        else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidth)){
           value = value - trainAmp;
           hasSpiked = false;
-          ptStart = ptStart + trainT;
+          ptStartTime = ptStartTime + trainTs;
   
           /*
           Serial.print("Spiking Down:");
-          Serial.print(dist);
+          Serial.print(currTime);
           Serial.print(" start:");
           Serial.print(ptStart);
           Serial.print(" period: ");
-          Serial.print(trainT);
+          Serial.print(trainTs);
           Serial.print(" Output: ");
           Serial.println(value);
           */
         }
       }
     }
+
     
     // Triangle Pulse (right now needs to be only activated on its own
 
     if (isTriActive && (dist>triDelay) && (dist<triPeak)){
-      //Serial.print("going up:");
+      value = triUpSlope*(dist-triDelay);
+      //Serial.println("going up:");
       //Serial.println(value);
-        value = triUpSlope*(dist-triDelay);
     }
     else if(isTriActive && (dist>triPeak) && (dist<triEnd)){
-      //Serial.println("going Down");
-        value = triDownSlope*(dist-triEnd);
+     
+      value = triDownSlope*(dist-triEnd);
+      //Serial.print("going Down");
+      //Serial.println(triDownSlope);
     }
     else if (isTriActive && (dist<triDelay || dist>triEnd)){
+      //Serial.println("end");
       value = 0;
     }
+
+    
     analogWrite(AOut, value*VAL2DAC);
     //Serial.println(dist);
 }  
 
 
 void clearBools() {
-  // Clears Reception booleans to make sure only receiving one at a time
   isPulse = false;
   isTrain = false;
   isGaus = false;
@@ -389,7 +404,7 @@ void clearParamBools(){
 }
 
 void noFlags() {
-  Serial.println("No shape flags read");
+  //Serial.println("No shape flags read");
 }
 
 
@@ -454,12 +469,15 @@ void parseTrainData(char train_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
-  
+
+
+  trainTs = trainT *1000;
   trainEnd = trainDelay + trainDuration;
   ptStart = trainDelay;
   hasSpiked = false;
 
   /*
+  Serial.println(isTime);
   Serial.print("Is Train?");
   Serial.println(isTrainActive);
   Serial.print("Train Amp");
@@ -468,10 +486,10 @@ void parseTrainData(char train_str[]) {
   Serial.println(trainDuration);
   Serial.print("Train Delay");
   Serial.println(trainDelay);
-  Serial.print("Train Frequency:");
-  Serial.println(trainFreq);
   Serial.print("Train Width");
   Serial.println(trainWidth);
+  Serial.print("Time Ts:");
+  Serial.println(trainTs);
   */
 }
 
@@ -506,6 +524,7 @@ void parseTriData(char tri_str[]) {
   triDownSlope = triAmp /(triPeak-triEnd);
 
   /*
+  Serial.println("_______________________");
   Serial.print("Is Triangle?");
   Serial.println(isTriActive);
   Serial.print("Triangle Amp");

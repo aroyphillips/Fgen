@@ -18,7 +18,7 @@ const byte numChars = 32;
 char pulse[14];
 char train[28];
 char gaus[numChars];
-char tri[numChars];
+char tri[18];
 
 
 // booleans to guide reception of serial data
@@ -63,7 +63,7 @@ float triPeak;
 float triDelay;
 float triEnd;
 float triUpSlope;
-float triDownSlope;
+static float triDownSlope;
 
 // Gaussian params
 boolean isGausActive;
@@ -116,6 +116,7 @@ void recvWithStartEndMarkers() {
     
     
     while (Serial.available() > 0 && newData == false) {
+        
         rc = Serial.read();
         //delay(100);
        
@@ -283,15 +284,18 @@ void outputVolts(){
     // Triangle Pulse (right now needs to be only activated on its own
 
     if (isTriActive && (dist>triDelay) && (dist<triPeak)){
-      //Serial.print("going up:");
+      value = triUpSlope*(dist-triDelay);
+      //Serial.println("going up:");
       //Serial.println(value);
-        value = triUpSlope*(dist-triDelay);
     }
     else if(isTriActive && (dist>triPeak) && (dist<triEnd)){
-      //Serial.println("going Down");
-        value = triDownSlope*(dist-triEnd);
+     
+      value = triDownSlope*(dist-triEnd);
+      //Serial.print("going Down");
+      //Serial.println(triDownSlope);
     }
     else if (isTriActive && (dist<triDelay || dist>triEnd)){
+      //Serial.println("end");
       value = 0;
     }
     analogWrite(AOut, value*VAL2DAC);
@@ -330,7 +334,6 @@ void parsePulseData(char pulse_str[]) {
   pulseDuration = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
-  Serial.println(strtokIndx);
   pulseDelay = atof(strtokIndx);     // convert this part to a float
 
   pulseEnd = pulseDelay + pulseDuration;
@@ -425,6 +428,7 @@ void parseTriData(char tri_str[]) {
   triDownSlope = triAmp /(triPeak-triEnd);
 
   /*
+  Serial.println("_______________________");
   Serial.print("Is Triangle?");
   Serial.println(isTriActive);
   Serial.print("Triangle Amp");
