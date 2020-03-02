@@ -254,7 +254,7 @@ void outputVolts(){
     // check each possible shape output and modify output volt accordingly
 
     if (dist>175){
-      readyToReceive = 1;
+      readyToReceive = '1';
     }
     
     // Pulse
