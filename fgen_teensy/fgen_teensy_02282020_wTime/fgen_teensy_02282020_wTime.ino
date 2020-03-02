@@ -93,6 +93,7 @@ boolean hasPulsed = false; // indicates whether pulse needs to be brought to res
 float dist;
 volatile float distCorrection;
 
+byte readyToReceive = 0;
 
 void setup() {
     pinMode(AOut, OUTPUT);
@@ -110,6 +111,7 @@ void loop() {
     Serial.println(1);
     recvWithStartEndMarkers();
     outputVolts();
+    Serial.write(readyToReceive);
 }
 
 
@@ -249,6 +251,11 @@ void outputVolts(){
     currDist = analogRead(distPin)/VAL2DAC*100;
     dist = currDist-distCorrection;
 
+    if (dist > 175){
+      readyToReceive = 1;
+    }
+
+    
     unsigned long currTime = millis();
     //dist = analogRead(distPin)/VAL2DAC*100;
 
@@ -596,6 +603,7 @@ void reset_distance(){
   hasPulsed = false;
   hasPulsedThisLap = false;
   hasSpikedThisLap = false;
+  readyToReceive = 0;
 }
 
 
