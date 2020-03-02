@@ -84,6 +84,7 @@ boolean hasPulsed = false; // indicates whether pulse needs to be brought to res
 float dist;
 volatile float distCorrection;
 
+byte readyToReceive = 0;
 
 void setup() {
     pinMode(AOut, OUTPUT);
@@ -100,6 +101,7 @@ void setup() {
 void loop() {
     recvWithStartEndMarkers();
     outputVolts();
+    Serial.write(readyToReceive);
 }
 
 
@@ -225,6 +227,10 @@ void outputVolts(){
 
     // check each possible shape output and modify output volt accordingly
 
+    if (dist>175){
+      readyToReceive = 1;
+    }
+    
     // Pulse
     if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap){
 
@@ -499,6 +505,7 @@ void reset_distance(){
   hasSpiked = false;
   hasPulsed = false;
   hasPulsedThisLap = false;
+  readyToReceive = 0;
 }
 
 
