@@ -10,13 +10,13 @@
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2.00,150,010,00.017,00.002!^1,2.50,100,080,030!g0,2,120,100,10!r0,3,60,10!>'
+// Incoming Bit Stream should look like this: '<p0,2.00,150,010!t0,2.00,150,010,060,030!^1,2.50,100,080,030!g0,2,120,100,10!r0,3,60,10!>'
 
 
 // registers to store incoming data
 const byte numChars = 32;
 char pulse[14];
-char train[28];
+char train[22];
 char gaus[numChars];
 char tri[18];
 
@@ -56,8 +56,9 @@ float trainDelay;
 float trainWidth;
 float trainEnd;
 float ptStart; // sliding location of pulse starts
-float trainT; // period of pulse = 1/freq
-float trainTs; // seconds period
+float trainT; // cm period of pulse
+float trainTs; // ms seconds period
+float trainWidthTime; // ms width of pulse
 unsigned long ptStartTime;
 
 boolean hasSpiked;
@@ -73,6 +74,7 @@ float triDelay;
 float triEnd;
 float triUpSlope;
 static float triDownSlope;
+boolean wasTriangle;
 
 // Gaussian params
 boolean isGausActive;
@@ -110,7 +112,11 @@ void setup() {
 void loop() {
     recvWithStartEndMarkers();
     outputVolts();
-    Serial.write(readyToReceive);
+    if (Serial.availableForWrite()>0){
+      Serial.write(readyToReceive);
+    }
+    
+    //Serial.println(readyToReceive);
 }
 
 
@@ -327,30 +333,32 @@ void outputVolts(){
           /*
           Serial.println(ptStart);
           Serial.println(currTime); 
-          Serial.println((currTime-ptStart)<=trainWidth*1000);
+          Serial.println((currTime-ptStart)<=trainWidthTime);
           Serial.println((currTime-ptStart)>=0);
           Serial.println(!hasSpiked);
           */
         }
         //Serial.println(ptStartTime);
         //Serial.println(currTime);
-        if (!hasSpiked && ((currTime-ptStartTime)<=trainWidth*1000) && ((currTime-ptStartTime)>=0)){
+        if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
           value = value + trainAmp;
   
           /*
           Serial.print("Spiking up:");
           Serial.print(currTime);
           Serial.print(" start:");
-          Serial.print(ptStart);
+          Serial.print(ptStartTime);
           Serial.print(" width: ");
-          Serial.print(trainWidth*1000);
+          Serial.print(trainWidthTime);
+          Serial.print(" train T:");
+          Serial.print(trainTs);
           Serial.print(" Output: ");
           Serial.println(value);
           */
           hasSpiked = true;
           
         }
-        else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidth*1000)){
+        else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
           value = value - trainAmp;
           hasSpiked = false;
           ptStartTime = ptStartTime + trainTs;
@@ -375,24 +383,26 @@ void outputVolts(){
 
     
     // Triangle Pulse (right now needs to be only activated on its own
-
-    if (isTriActive && (dist>triDelay) && (dist<triPeak)){
-      value = triUpSlope*(dist-triDelay);
-      //Serial.println("going up:");
-      //Serial.println(value);
-    }
-    else if(isTriActive && (dist>triPeak) && (dist<triEnd)){
-     
-      value = triDownSlope*(dist-triEnd);
-      //Serial.print("going Down");
-      //Serial.println(triDownSlope);
-    }
-    else if (isTriActive && (dist<triDelay || dist>triEnd)){
-      //Serial.println("end");
-      value = 0;
+    if(isTriActive){
+      if ((dist>triDelay) && (dist<triPeak)){
+        value = triUpSlope*(dist-triDelay);
+        //Serial.println("going up:");
+        //Serial.println(value);
+      }
+      else if((dist>triPeak) && (dist<triEnd)){
+       
+        value = triDownSlope*(dist-triEnd);
+        //Serial.print("going Down");
+        //Serial.println(triDownSlope);
+      }
+      else{
+        //Serial.println("end");
+        value = 0;
+      }
     }
     analogWrite(AOut, value*VAL2DAC);
     //Serial.println(dist);
+    
 }  
 
 
@@ -476,8 +486,9 @@ void parseTrainData(char train_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
-
-  trainTs = trainT *1000;
+  
+  trainTs = 1/trainT *1000;
+  trainWidthTime = 1/trainWidth *1000;
   trainEnd = trainDelay + trainDuration;
   ptStart = trainDelay;
   hasSpiked = false;
@@ -590,12 +601,8 @@ void parseGausData(char g_str[]) {
 
 void reset_distance(){
   value = 0;
-  float distRead = analogRead(distPin)/VAL2DAC*100;
-  // Adjust for distance offset, ensure distance read is after reset
-    if (distRead<20){
-      distCorrection = distRead;
-    } 
   analogWrite(AOut,0);
+
   buildNewData();
   ptStart = trainDelay;
   hasSpiked = false;
@@ -603,6 +610,12 @@ void reset_distance(){
   hasPulsedThisLap = false;
   hasSpikedThisLap = false;
   readyToReceive = 0;
+  
+  float distRead = analogRead(distPin)/VAL2DAC*100;
+  // Adjust for distance offset, ensure distance read is after reset
+  if (distRead<20){
+    distCorrection = distRead;
+  } 
 }
 
 
