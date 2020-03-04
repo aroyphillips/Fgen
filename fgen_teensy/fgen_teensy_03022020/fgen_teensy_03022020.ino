@@ -252,8 +252,8 @@ void outputVolts(){
     
     unsigned long currTime = millis();
     // check each possible shape output and modify output volt accordingly
-
-    if (dist>175){
+    // Serial.println(readyToReceive);
+    if (dist>170){
       readyToReceive = '1';
     }
     
@@ -483,11 +483,12 @@ void parseTrainData(char train_str[]) {
   Serial.println(trainDuration);
   Serial.print("Train Delay");
   Serial.println(trainDelay);
-  Serial.print("Train Frequency:");
-  Serial.println(trainFreq);
+  Serial.print("Train Ts:");
+  Serial.println(trainTs);
   Serial.print("Train Width");
   Serial.println(trainWidth);
   */
+  
 }
 
 
