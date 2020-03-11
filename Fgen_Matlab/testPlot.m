@@ -1,29 +1,42 @@
 clear
 
-trainPrd = 60;
-trainDur = 100;
-trainWid = 120;
-trainDly = 50;
-trainAmp = 2;
+trainPrd = 10;
+trainDur = 90;
+trainWid = 5;
+trainDly = 0;
+trainAmp = 4;
+pulseAmp = 2;
+pulseDly = 30;
+pulseDur = 20;
 A2V = 0.5;
 
 y =zeros(1,181);
 
-gausAmp = 3;
-gausCent =70;
-gausLeftWid = 10;
-gausRightWid = 10;
+y((pulseDly+1):(pulseDly+pulseDur)) = y((pulseDly+1):(pulseDly+pulseDur)) + pulseAmp/A2V;                                   
+single_pulse = zeros(1,trainPrd); 
+single_pulse(1:trainWid) = trainAmp/A2V;
+all_pulses = repmat(single_pulse, 1, ceil(trainDur/trainPrd));
+all_pulses = all_pulses(1:trainDur);
 
-gausInds = cumsum(ones(1,181));
-% up gaussian
-upInds = 1:(gausCent+1);
-y(upInds) = gausAmp*exp(-log(2)*((gausInds(upInds)-gausCent)/gausLeftWid).^2);
-
-% down gaussian
-downInds = (gausCent+1):170;
-y(downInds) = gausAmp*exp(-log(2)*((gausInds(downInds)-gausCent)/gausRightWid).^2);
+train_inds = [(trainDly+1):(trainDly+trainDur)];
+y(train_inds) = y(train_inds) + all_pulses;    
 
 plot(y)
+% gausAmp = 3;
+% gausCent =70;
+% gausLeftWid = 10;
+% gausRightWid = 10;
+% 
+% gausInds = cumsum(ones(1,181));
+% % up gaussian
+% upInds = 1:(gausCent+1);
+% y(upInds) = gausAmp*exp(-log(2)*((gausInds(upInds)-gausCent)/gausLeftWid).^2);
+% 
+% % down gaussian
+% downInds = (gausCent+1):170;
+% y(downInds) = gausAmp*exp(-log(2)*((gausInds(downInds)-gausCent)/gausRightWid).^2);
+% 
+% plot(y)
 
 % prdTs = round(1/trainPrd*1000);
 % width = round(1/trainWid*1000);
