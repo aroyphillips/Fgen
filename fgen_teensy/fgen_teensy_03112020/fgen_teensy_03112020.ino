@@ -63,6 +63,7 @@ unsigned long ptStartTime;
 
 boolean hasSpiked;
 boolean hasSpikedThisLap = false;
+boolean doneSpiking;
 
 // Triangle Pulse params
 
@@ -332,7 +333,7 @@ void outputVolts(){
 
     // Time based train
      else if(isTime){
-      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
+      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
         if (!hasSpikedThisLap){
           hasSpikedThisLap = true;
           ptStartTime = millis();
@@ -386,6 +387,7 @@ void outputVolts(){
       else if (hasSpiked && (dist>trainEnd)){
         value = value - trainAmp;
         hasSpiked = false;
+        doneSpiking = true;
       }
     }
 
@@ -640,6 +642,7 @@ void reset_distance(){
   hasPulsed = false;
   hasPulsedThisLap = false;
   hasSpikedThisLap = false;
+  doneSpiking = false;
   hasGaussed = false;
   readyToReceive = 0;
   
