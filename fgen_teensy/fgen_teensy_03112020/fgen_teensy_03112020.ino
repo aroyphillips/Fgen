@@ -291,7 +291,7 @@ void outputVolts(){
 
     // Pulse Train
     if (isDist){
-      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd)){
+      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
         if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
           value = value + trainAmp;
   
@@ -328,6 +328,7 @@ void outputVolts(){
       else if (hasSpiked && (dist>trainEnd)){
         value = value - trainAmp;
         hasSpiked = false;
+        doneSpiking = true;
       }
     }
 
