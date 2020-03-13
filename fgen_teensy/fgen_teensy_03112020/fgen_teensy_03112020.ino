@@ -113,6 +113,7 @@ void setup() {
 }
 
 void loop() {
+    
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
@@ -120,6 +121,7 @@ void loop() {
     }
     
     //Serial.println(readyToReceive);
+    //analogWrite(AOut,3*VAL2DAC);
 }
 
 
@@ -264,7 +266,8 @@ void outputVolts(){
     float currDist;
     currDist = analogRead(distPin)/VAL2DAC*100;
     dist = currDist-distCorrection;
-    
+    //Serial.print("Distance: ");
+    //Serial.println(dist);
     unsigned long currTime = millis();
     // check each possible shape output and modify output volt accordingly
     // Serial.println(readyToReceive);
@@ -282,8 +285,8 @@ void outputVolts(){
       //Serial.println(dist);
     }
     else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
-      //Serial.print("pulse down: ");
-      //Serial.println(dist);
+      Serial.print("pulse down: ");
+      Serial.println(dist);
       value = value - pulseAmp;
       hasPulsed = false;
     }
@@ -616,7 +619,7 @@ void parseGausData(char g_str[]) {
 
 
   
-  
+  /*
   Serial.print("Is Gaussian?");
   Serial.println(isGausActive);
   Serial.print("Guassian Amp");
@@ -627,7 +630,7 @@ void parseGausData(char g_str[]) {
   Serial.println(gausLeftW); 
   Serial.print("Gaussian Right Width");
   Serial.println(gausRightW);
- 
+  */
 }
 
 // INTERUPT SERVICE ROUTINE
