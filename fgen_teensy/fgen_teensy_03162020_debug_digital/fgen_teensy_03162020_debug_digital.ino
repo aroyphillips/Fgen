@@ -16,7 +16,7 @@ float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 -->
 
 // registers to store incoming data
 const byte numChars = 32;
-char digit[7];
+char digit[9];
 char pulse[15];
 char train[22];
 char gaus[18];
@@ -44,10 +44,12 @@ boolean isTime = false;
 
 
 // Digital Pulse params
-boolean isDigActiv;
+boolean isDigActive;
+int digDelay;
 int digDuration;
-int digDuration;
-
+boolean digPulseOn; // tells whether to pulse or not
+boolean hasDigPulsed; // flag to mark start of pulse
+unsigned long digTime; // marks the start time of the pulse
 
 // Pulse params
 boolean isPulseActive;
@@ -114,10 +116,10 @@ void setup() {
     pinMode(AOut, OUTPUT);
     pinMode(rstPin, INPUT);
     pinMode(distPin, INPUT);
-    pinMode(digitalPIn, OUTPUT);
+    pinMode(digitalPin, OUTPUT);
     analogWriteResolution(12);
     analogReadResolution(12);
-    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, RISING);
+    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, FALLING);
     Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
     //Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
@@ -133,6 +135,10 @@ void loop() {
     
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
+    buildNewData();
+    if (digPulseOn){
+      digitalWrite(digitalPin, HIGH);
+    }
 }
 
 
@@ -151,7 +157,7 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        //delay(100);
+        delay(100);
        
         if (rc == startMarker) {
           recvInProgress = true;
@@ -216,6 +222,7 @@ void recvWithStartEndMarkers() {
                       digit[ndx] =rc;
                       ndx++;
                     }
+                   }
                    else if (isPulse){
                     if (rc == phraseEnd){
                     }
@@ -264,11 +271,11 @@ void recvWithStartEndMarkers() {
             }
         }
     }
-    
 }
 
 void buildNewData() {
     if (newData == true) {
+        parseDigitalData(digit);
         parsePulseData(pulse);
         parseTrainData(train);
         parseTriData(tri);
@@ -288,13 +295,26 @@ void outputVolts(){
     //Serial.print("Distance: ");
     //Serial.println(dist);
     unsigned long currTime = millis();
+    
     // check each possible shape output and modify output volt accordingly
     // Serial.println(readyToReceive);
     if (dist>170){
       readyToReceive = '1';
     }
 
+    // Digital Pulse flag
 
+    if (isDig && dist> digDelay && !hasDigPulsed){
+      digPulseOn = true;
+      digTime = millis();
+      hasDigPulsed = true;
+    }
+    else if (isDig && ((currTime - digTime) >= digDuration && hasDigPulsed)){
+      digPulseOn = false;
+    }
+    else if (!isDig || dist < digDelay){
+      digPulseOn = false;
+    }
     
     // Triangle Pulse (right now needs to be only activated on its own
     if(isTriActive){
@@ -354,7 +374,7 @@ void outputVolts(){
       }
     }
     else if(isTime){
-     if (isPulseActive && (dist>pulseDelay) && ((currTime-pulseStartTime)<pulseDuration) !hasPulsed && !hasPulsedThisLap){
+     if (isPulseActive && (dist>pulseDelay) && ((currTime-pulseStartTime)<pulseDuration) && !hasPulsed && !hasPulsedThisLap){
 
         pulseStartTime = millis();
         value = value + pulseAmp;
@@ -419,7 +439,7 @@ void outputVolts(){
      else if(isTime){
       if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
         if (!hasSpikedThisLap){
-          hasSpikedThisLap = ptrue;
+          hasSpikedThisLap = true;
           ptStartTime = millis();
           currTime = millis();
 
@@ -503,6 +523,33 @@ void noFlags() {
 
 // Parsing functions to read serial data
 
+void parseDigitalData(char digit_str[]) {
+
+    // split the data into its parts
+    
+  char * strtokIndx; // this is used by strtok() as an index
+
+  strtokIndx = strtok(digit_str, ","); // this continues where the previous call left off
+  isDigActive =(*strtokIndx=='1');     // converts char* to a boolean
+
+
+  strtokIndx = strtok(NULL, ",");
+  digDuration = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  digDelay = atof(strtokIndx);     // convert this part to a float
+
+  
+  Serial.print("Is Digital Pulse?");
+  Serial.println(isDigActive);
+  Serial.print("Digital Pulse Duration:");
+  Serial.println(digDuration);
+  Serial.print("Digital Pulse Delay");
+  Serial.println(digDelay);
+  
+}
+
+
 void parsePulseData(char pulse_str[]) {
 
     // split the data into its parts
@@ -525,7 +572,7 @@ void parsePulseData(char pulse_str[]) {
   pulseEnd = pulseDelay + pulseDuration;
 
 
-  /*
+  
   Serial.print("Is Pulse?");
   Serial.println(isPulseActive);
   Serial.print("Pulse Amp");
@@ -534,7 +581,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.println(pulseDuration);
   Serial.print("Pulse Delay");
   Serial.println(pulseDelay);
-  */
+  
 }
 
 
