@@ -4,19 +4,19 @@
 #define AOut A22
 #define rstPin 19
 #define distPin A21
-#define digitalPin 6
+#define digitalPin 35
  
 #define MAXAOUT 3.3
 
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<sb0,100,500!p0,2.00,0150,010!t0,2.00,150,010,060,030!^1,2.50,100,080,030!g0,2,120,100,10!r0,3,60,10!>'
+// Incoming Bit Stream should look like this: '<sb0,100,0500!p0,2.00,0150,010!t0,2.00,150,010,060,030!^1,2.50,100,080,030!g0,2,120,100,10!>'
 
 
 // registers to store incoming data
 const byte numChars = 32;
-char digit[9];
+char digit[10];
 char pulse[15];
 char train[22];
 char gaus[18];
@@ -120,7 +120,7 @@ void setup() {
     pinMode(digitalPin, OUTPUT);
     analogWriteResolution(12);
     analogReadResolution(12);
-    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, FALLING);
+    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, RISING);
     Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
     //Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
@@ -131,15 +131,17 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      //Serial.write(readyToReceive);
+      Serial.write(readyToReceive);
     }
     
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
-    buildNewData();
     if (digPulseOn){
-      Serial.println("Pulsing Digital");
+      //Serial.println("Pulsing Digital");
       digitalWrite(digitalPin, HIGH);
+    }
+    else{
+      digitalWrite(digitalPin, LOW);
     }
 }
 
@@ -159,7 +161,7 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        delay(100);
+        //delay(100);
        
         if (rc == startMarker) {
           recvInProgress = true;
@@ -305,24 +307,42 @@ void outputVolts(){
       readyToReceive = '1';
     }
 
-    // Digital Pulse flag
-    //Serial.print("Dist: ");
-    //Serial.print(dist);
-    //Serial.print(" Delay: ");
-    //Serial.println(digDelay);
-    if (isDigActive && dist> digDelay && !hasDigPulsed){
-      Serial.print("Turning dig pulse on, duration ");
-      Serial.println(digDuration);
-      digPulseOn = true;
-      digTime = millis();
-      hasDigPulsed = true;
+    // DIGITAL PULSE FLAG
+
+    if(isTime){
+      if (isDigActive && dist> digDelay && !hasDigPulsed){
+       //Serial.print("Turning dig pulse on, duration ");
+       //Serial.println(digDuration);
+        digPulseOn = true;
+        digTime = millis();
+        hasDigPulsed = true;
+      }
+      else if (isDigActive && ((currTime - digTime) >= digDuration && hasDigPulsed)){
+        //Serial.println("dig pulse off");
+        digPulseOn = false;
+      }
+      else if ((!isDigActive || (dist < digDelay)) && !hasDigPulsed){
+        digPulseOn = false;
+      }
     }
-    else if (isDigActive && ((currTime - digTime) >= digDuration && hasDigPulsed)){
-      //Serial.println("dig pulse off");
-      digPulseOn = false;
-    }
-    else if (!isDigActive || dist < digDelay){
-      digPulseOn = false;
+    else if (isDist){
+      if (isDigActive && dist> digDelay && !hasDigPulsed){
+       //Serial.print("Turning dig pulse on, duration ");
+       //Serial.println(digDuration);
+        digPulseOn = true;
+        hasDigPulsed = true;
+      }
+      else if (isDigActive && (dist >= (digDuration+digDelay)) && hasDigPulsed){
+        //Serial.println("dig pulse off");
+        digPulseOn = false;
+      }
+      else if ((!isDigActive || (dist < digDelay) || (dist >=(digDuration+digDelay))) && !hasDigPulsed){
+        //Serial.print("dist < digDelay : ");
+        //Serial.print(dist < digDelay);
+        //Serial.print(" past dur: ");
+        //Serial.println(dist >=(digDuration +digDelay));
+        digPulseOn = false;
+      }
     }
     
     // Triangle Pulse (right now needs to be only activated on its own
@@ -372,29 +392,29 @@ void outputVolts(){
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        Serial.print("pulsing: ");
-        Serial.println(dist);
+        //Serial.print("pulsing: ");
+        //Serial.println(dist);
       }
       else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
-        Serial.print("pulse down: ");
-        Serial.println(dist);
+        //Serial.print("pulse down: ");
+        //Serial.println(dist);
         value = value - pulseAmp;
         hasPulsed = false;
       }
     }
     else if(isTime){
-     if (isPulseActive && (dist>pulseDelay) && ((currTime-pulseStartTime)<pulseDuration) && !hasPulsed && !hasPulsedThisLap){
+     if (isPulseActive && (dist>pulseDelay) && !hasPulsed && !hasPulsedThisLap){
 
         pulseStartTime = millis();
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        Serial.print("pulsing: ");
-        Serial.println(dist);
+       //Serial.print("pulsing: ");
+       //Serial.println(dist);
       }
-      else if (isPulseActive && ((currTime-pulseStartTime)>=pulseDuration) && hasPulsed){
-        Serial.print("pulse down: ");
-        Serial.println(dist);
+      else if (isPulseActive && ((currTime-pulseStartTime)>=(unsigned long)pulseDuration) && hasPulsed){
+        //Serial.print("pulse down: ");
+        //Serial.println(dist);
         value = value - pulseAmp;
         hasPulsed = false;
       }
@@ -513,10 +533,12 @@ void outputVolts(){
 
 
 void clearBools() {
+  // resets all reception flags so only receiving one at a time
   isPulse = false;
   isTrain = false;
   isGaus = false;
   isTri = false;
+  isDig = false;
 }
 
 void clearParamBools(){
@@ -550,14 +572,14 @@ void parseDigitalData(char digit_str[]) {
 
 
 
-  
+  /*
   Serial.print("Is Digital Pulse?");
   Serial.println(isDigActive);
   Serial.print("Digital Pulse Duration:");
   Serial.println(digDuration);
   Serial.print("Digital Pulse Delay");
   Serial.println(digDelay);
-  
+  */
 }
 
 
@@ -746,8 +768,15 @@ void parseParamData(char param_chr){
       break;
     default:
       clearParamBools();
-      break;
+      break;    
   }
+
+  /*
+  Serial.print("Is time?");
+  Serial.print(isTime);
+  Serial.print(" is dist?");
+  Serial.println(isDist);
+  */
 }
 
 // INTERUPT SERVICE ROUTINE
@@ -767,6 +796,7 @@ void reset_distance(){
   hasGaussed = false;
   readyToReceive = 0;
   digPulseOn = false;
+  hasDigPulsed = false;
   
   float distRead = analogRead(distPin)/VAL2DAC*100;
   // Adjust for distance offset, ensure distance read is after reset
