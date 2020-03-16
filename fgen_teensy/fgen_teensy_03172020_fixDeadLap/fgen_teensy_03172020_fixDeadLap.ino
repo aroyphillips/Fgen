@@ -36,6 +36,7 @@ unsigned long afterRxMillis;
 //Incoming Paramters
 
 //Dependent parameter
+char param;
 boolean isVelo = false;
 boolean isDist = false;
 boolean isTime = false;
@@ -453,7 +454,7 @@ void clearParamBools(){
   isTime = false;
   isDist = false;
   isVelo = false;
-  param = [];
+  param = '0';
 }
 
 void noFlags() {
@@ -635,8 +636,8 @@ void parseGausData(char g_str[]) {
   */
 }
 
-parseParamData(param_chr){
-  switch param_chr{
+void parseParamData(char param_chr){
+  switch (param_chr){
     case 's':
       clearParamBools();
       isTime = true;
@@ -644,7 +645,10 @@ parseParamData(param_chr){
     case 'd':
       clearParamBools();
       isDist = true;
-      break
+      break;
+    default:
+      clearParamBools();
+      break;
   }
 }
 

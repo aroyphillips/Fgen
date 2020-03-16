@@ -117,7 +117,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      Serial.write(readyToReceive);
+      //Serial.write(readyToReceive);
     }
     
     //Serial.println(readyToReceive);
@@ -281,8 +281,8 @@ void outputVolts(){
       value = value + pulseAmp;
       hasPulsed = true;
       hasPulsedThisLap = true;
-      //Serial.print("pulsing: ");
-      //Serial.println(dist);
+      Serial.print("pulsing: ");
+      Serial.println(dist);
     }
     else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
       Serial.print("pulse down: ");
@@ -298,7 +298,7 @@ void outputVolts(){
         if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
           value = value + trainAmp;
   
-          /*
+          
           Serial.print("Spiking up:");
           Serial.print(dist);
           Serial.print(" start:");
@@ -307,7 +307,7 @@ void outputVolts(){
           Serial.print(trainWidth);
           Serial.print(" Output: ");
           Serial.println(value);
-          */
+          
           hasSpiked = true;
           
         }
@@ -316,7 +316,7 @@ void outputVolts(){
           hasSpiked = false;
           ptStart = ptStart + trainT;
   
-          /*
+          
           Serial.print("Spiking Down:");
           Serial.print(dist);
           Serial.print(" start:");
@@ -325,7 +325,7 @@ void outputVolts(){
           Serial.print(trainT);
           Serial.print(" Output: ");
           Serial.println(value);
-          */
+          
         }
       }
       else if (hasSpiked && (dist>trainEnd)){
@@ -338,6 +338,16 @@ void outputVolts(){
     // Time based train
      else if(isTime){
       if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
+        if (hasSpiked){
+          Serial.print("Current time:");
+          Serial.print(currTime);
+          Serial.print(" start:");
+          Serial.print(ptStartTime);
+          Serial.print(" width: ");
+          Serial.print(trainWidthTime);
+          Serial.print(" train T:");
+          Serial.println(trainTs);
+        }
         if (!hasSpikedThisLap){
           hasSpikedThisLap = true;
           ptStartTime = millis();
@@ -353,10 +363,11 @@ void outputVolts(){
         }
         //Serial.println(ptStartTime);
         //Serial.println(currTime);
+
         if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
           value = value + trainAmp;
   
-          /*
+          
           Serial.print("Spiking up:");
           Serial.print(currTime);
           Serial.print(" start:");
@@ -367,7 +378,7 @@ void outputVolts(){
           Serial.print(trainTs);
           Serial.print(" Output: ");
           Serial.println(value);
-          */
+          
           hasSpiked = true;
           
         }
@@ -376,7 +387,7 @@ void outputVolts(){
           hasSpiked = false;
           ptStartTime = ptStartTime + trainTs;
   
-          /*
+          
           Serial.print("Spiking Down:");
           Serial.print(currTime);
           Serial.print(" start:");
@@ -385,7 +396,7 @@ void outputVolts(){
           Serial.print(trainTs);
           Serial.print(" Output: ");
           Serial.println(value);
-          */
+          
         }
       }
       else if (hasSpiked && (dist>trainEnd)){
@@ -483,7 +494,7 @@ void parsePulseData(char pulse_str[]) {
   pulseEnd = pulseDelay + pulseDuration;
 
 
-  /*
+  
   Serial.print("Is Pulse?");
   Serial.println(isPulseActive);
   Serial.print("Pulse Amp");
@@ -492,7 +503,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.println(pulseDuration);
   Serial.print("Pulse Delay");
   Serial.println(pulseDelay);
-  */
+  
 }
 
 
@@ -527,7 +538,7 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  /*
+  
   Serial.print("Is Train?");
   Serial.println(isTrainActive);
   Serial.print("Train Amp");
@@ -540,7 +551,7 @@ void parseTrainData(char train_str[]) {
   Serial.println(trainTs);
   Serial.print("Train Width");
   Serial.println(trainWidth);
-  */
+  
   
 }
 
