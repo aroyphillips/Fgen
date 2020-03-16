@@ -11,14 +11,14 @@
 
 float VAL2DAC = 4095/3.3; // Volt = val*3.3/4095 --> 
 
-// Incoming Bit Stream should look like this: '<sb0,100,0500!p0,2.00,0150,010!t0,2.00,150,010,060,030!^1,2.50,100,080,030!g0,2,120,100,10!>'
+// Incoming Bit Stream should look like this: '<b0,100,s,0500!p0,2.00,010,d,0150!t0,2.00,050,d,100,s,020,040!^1,2.50,100,080,030!g0,2,120,100,10!>'
 
 
 // registers to store incoming data
 const byte numChars = 32;
-char digit[10];
-char pulse[15];
-char train[22];
+char digit[12];
+char pulse[17];
+char train[26];
 char gaus[18];
 char tri[18];
 
@@ -39,15 +39,16 @@ unsigned long afterRxMillis;
 //Incoming Paramters
 
 //Dependent parameter
-char param;
-boolean isDist = false;
-boolean isTime = false;
-
+char distSymbol = 'd';
+char timeSymbol = 's';
 
 // Digital Pulse params
 boolean isDigActive;
 int digDelay;
+char digParam;
 int digDuration;
+boolean isDigTime;
+boolean isDigDist;
 boolean digPulseOn = false; // tells whether to pulse or not
 boolean hasDigPulsed; // flag to mark start of pulse
 unsigned long digTime; // marks the start time of the pulse
@@ -55,25 +56,36 @@ unsigned long digTime; // marks the start time of the pulse
 // Pulse params
 boolean isPulseActive;
 float pulseAmp;
+char pulseParam;
 int pulseDuration;
 int pulseDelay;
 float pulseEnd;
+boolean isPulseTime;
+boolean isPulseDist;
 unsigned long pulseStartTime; 
 
 // Pulse Train params
 
 boolean isTrainActive;
 float trainAmp;
+char trainParam;
 float trainDuration;
+char spikeParam;
 float trainDelay;
 float trainWidth;
 float trainEnd;
+unsigned long trainStartTime;
 float ptStart; // sliding location of pulse starts
 float trainT; // cm period of pulse
 float trainTs; // ms seconds period
 float trainWidthTime; // ms width of pulse
 unsigned long ptStartTime;
 
+boolean hasStartedTrain =false;
+boolean isTrainTime;
+boolean isTrainDist;
+boolean isSpikeTime;
+boolean isSpikeDist;
 boolean hasSpiked;
 boolean hasSpikedThisLap = false;
 boolean doneSpiking;
@@ -131,7 +143,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      Serial.write(readyToReceive);
+      //Serial.write(readyToReceive);
     }
     
     //Serial.println(readyToReceive);
@@ -173,17 +185,6 @@ void recvWithStartEndMarkers() {
             // Read parameters for different output shapes
             if (rc != endMarker) {
                 switch(rc) {
-                  case 's':
-                    // Time parameter
-                    clearParamBools();
-                    param = rc;
-                    break;
-
-                  case 'd':
-                    // Dist parameter
-                    clearParamBools();
-                    param = rc;
-                    break;
 
                   case 'b':
                     // Receiving parameters for Digital (b)inary pulse 
@@ -284,7 +285,6 @@ void buildNewData() {
         parseTrainData(train);
         parseTriData(tri);
         parseGausData(gaus);
-        parseParamData(param);
         newData = false;  
       }
        
@@ -309,7 +309,7 @@ void outputVolts(){
 
     // DIGITAL PULSE FLAG
 
-    if(isTime){
+    if(isDigTime){
       if (isDigActive && dist> digDelay && !hasDigPulsed){
        //Serial.print("Turning dig pulse on, duration ");
        //Serial.println(digDuration);
@@ -317,7 +317,7 @@ void outputVolts(){
         digTime = millis();
         hasDigPulsed = true;
       }
-      else if (isDigActive && ((currTime - digTime) >= digDuration && hasDigPulsed)){
+      else if (isDigActive && ((currTime - digTime) >= (unsigned long)digDuration && hasDigPulsed)){
         //Serial.println("dig pulse off");
         digPulseOn = false;
       }
@@ -325,7 +325,7 @@ void outputVolts(){
         digPulseOn = false;
       }
     }
-    else if (isDist){
+    else if (isDigDist){
       if (isDigActive && dist> digDelay && !hasDigPulsed){
        //Serial.print("Turning dig pulse on, duration ");
        //Serial.println(digDuration);
@@ -336,7 +336,7 @@ void outputVolts(){
         //Serial.println("dig pulse off");
         digPulseOn = false;
       }
-      else if ((!isDigActive || (dist < digDelay) || (dist >=(digDuration+digDelay))) && !hasDigPulsed){
+      else if ((!isDigActive || (dist < digDelay) || (dist >=(unsigned long)(digDuration+digDelay))) && !hasDigPulsed){
         //Serial.print("dist < digDelay : ");
         //Serial.print(dist < digDelay);
         //Serial.print(" past dur: ");
@@ -386,7 +386,7 @@ void outputVolts(){
 
         
     // Pulse
-    if(isDist){
+    if(isPulseDist){
       if (isPulseActive && (dist>pulseDelay) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap){
   
         value = value + pulseAmp;
@@ -402,7 +402,7 @@ void outputVolts(){
         hasPulsed = false;
       }
     }
-    else if(isTime){
+    else if(isPulseTime){
      if (isPulseActive && (dist>pulseDelay) && !hasPulsed && !hasPulsedThisLap){
 
         pulseStartTime = millis();
@@ -422,113 +422,164 @@ void outputVolts(){
 
 
     // Pulse Train
-    if (isDist){
+
+    // DISTANCE DURATION
+    if (isTrainDist){
       if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
-        if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
-          value = value + trainAmp;
-  
-          /*
-          Serial.print("Spiking up:");
-          Serial.print(dist);
-          Serial.print(" start:");
-          Serial.print(ptStart);
-          Serial.print(" width: ");
-          Serial.print(trainWidth);
-          Serial.print(" Output: ");
-          Serial.println(value);
-          */
-          hasSpiked = true;
+        if(isSpikeDist){
+          //Distance-based Spikes
           
-        }
-        else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
-          value = value - trainAmp;
-          hasSpiked = false;
-          ptStart = ptStart + trainT;
-  
-          /*
-          Serial.print("Spiking Down:");
-          Serial.print(dist);
-          Serial.print(" start:");
-          Serial.print(ptStart);
-          Serial.print(" period: ");
-          Serial.print(trainT);
-          Serial.print(" Output: ");
-          Serial.println(value);
-          */
-        }
-      }
-      else if (hasSpiked && (dist>trainEnd)){
-        value = value - trainAmp;
-        hasSpiked = false;
-        doneSpiking = true;
-      }
-    }
-
-    // Time based train
-     else if(isTime){
-      if (isTrainActive && (dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
-        if (!hasSpikedThisLap){
-          hasSpikedThisLap = true;
-          ptStartTime = millis();
-          currTime = millis();
-
-          /*
-          Serial.println(ptStart);
-          Serial.println(currTime); 
-          Serial.println((currTime-ptStart)<=trainWidthTime);
-          Serial.println((currTime-ptStart)>=0);
-          Serial.println(!hasSpiked);
-          */
-        }
-        //Serial.println(ptStartTime);
-        //Serial.println(currTime);
-        if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
-          value = value + trainAmp;
-  
-          /*
-          Serial.print("Spiking up:");
-          Serial.print(currTime);
-          Serial.print(" start:");
-          Serial.print(ptStartTime);
-          Serial.print(" width: ");
-          Serial.print(trainWidthTime);
-          Serial.print(" train T:");
-          Serial.print(trainTs);
-          Serial.print(" Output: ");
-          Serial.println(value);
-          */
-          hasSpiked = true;
-          
-        }
-        else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
-          value = value - trainAmp;
-          hasSpiked = false;
-          ptStartTime = ptStartTime + trainTs;
-  
-          /*
-          Serial.print("Spiking Down:");
-          Serial.print(currTime);
-          Serial.print(" start:");
-          Serial.print(ptStart);
-          Serial.print(" period: ");
-          Serial.print(trainTs);
-          Serial.print(" Output: ");
-          Serial.println(value);
-          */
-        }
-      }
-      else if (hasSpiked && (dist>trainEnd)){
-        value = value - trainAmp;
-        hasSpiked = false;
-        doneSpiking = true;
-      }
-    }
-
-
+          if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+            value = value + trainAmp;
     
+            /*
+            Serial.print("Spiking up:");
+            Serial.print(dist);
+            Serial.print(" start:");
+            Serial.print(ptStart);
+            Serial.print(" width: ");
+            Serial.print(trainWidth);
+            Serial.print(" Output: ");
+            Serial.println(value);
+            */
+            hasSpiked = true;
+            
+          }
+          else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+            value = value - trainAmp;
+            hasSpiked = false;
+            ptStart = ptStart + trainT;
+    
+            /*
+            Serial.print("Spiking Down:");
+            Serial.print(dist);
+            Serial.print(" start:");
+            Serial.print(ptStart);
+            Serial.print(" period: ");
+            Serial.print(trainT);
+            Serial.print(" Output: ");
+            Serial.println(value);
+            */
+          } 
+        }
+        else if (isSpikeTime){
+
+          //Time-Based Spikes
+          if (!hasSpikedThisLap){
+            hasSpikedThisLap = true;
+            ptStartTime = millis();
+            currTime = millis();
+  
+            /*
+            Serial.println(ptStart);
+            Serial.println(currTime); 
+            Serial.println((currTime-ptStart)<=trainWidthTime);
+            Serial.println((currTime-ptStart)>=0);
+            Serial.println(!hasSpiked);
+            */
+          }
+          //Serial.println(ptStartTime);
+          //Serial.println(currTime);
+          if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
+            value = value + trainAmp;
+    
+            /*
+            Serial.print("Spiking up:");
+            Serial.print(currTime);
+            Serial.print(" start:");
+            Serial.print(ptStartTime);
+            Serial.print(" width: ");
+            Serial.print(trainWidthTime);
+            Serial.print(" train T:");
+            Serial.print(trainTs);
+            Serial.print(" Output: ");
+            Serial.println(value);
+            */
+            hasSpiked = true;
+            
+          }
+          else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
+            value = value - trainAmp;
+            hasSpiked = false;
+            ptStartTime = ptStartTime + trainTs;
+    
+            /*
+            Serial.print("Spiking Down:");
+            Serial.print(currTime);
+            Serial.print(" start:");
+            Serial.print(ptStart);
+            Serial.print(" period: ");
+            Serial.print(trainTs);
+            Serial.print(" Output: ");
+            Serial.println(value);
+            */
+          }  
+        }
+      }
+      else if (hasSpiked && (dist>trainEnd)){
+        value = value - trainAmp;
+        hasSpiked = false;
+        doneSpiking = true;
+      }
+    }
+
+    // TIME DURATION
+     else if(isTrainTime){
+      if(!hasStartedTrain){
+        trainStartTime = millis();
+        hasStartedTrain = true;
+      }
+      if (isTrainActive && (dist>trainDelay) && !doneSpiking){
+        // start train
+
+        // HZ SPIKES
+        if (isSpikeTime){
+            if (!hasSpikedThisLap){
+              hasSpikedThisLap = true;
+              ptStartTime = millis();
+              currTime = millis();
+             
+            }
+            //Serial.println(ptStartTime);
+            //Serial.println(currTime);
+            if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
+              value = value + trainAmp;
+
+              hasSpiked = true;
+              
+            }
+            else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
+              value = value - trainAmp;
+              hasSpiked = false;
+              if ((ptStartTime+trainTs)<(trainStartTime+trainDuration)){ 
+                ptStartTime = ptStartTime + trainTs;
+              }
+
+            }
+          }
+
+          //DIST SPIKES
+          else if(isSpikeDist){
+            if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+            value = value + trainAmp;
+            hasSpiked = true;
+            }
+            else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+              value = value - trainAmp;
+              hasSpiked = false;
+              ptStart = ptStart + trainT;
+            } 
+          }
+          if (hasSpiked && (currTime > (trainStartTime+trainDuration))){
+            value = value - trainAmp;
+            hasSpiked = false;
+            doneSpiking = true;
+          }
+        }
+      }
+
     analogWrite(AOut, value*VAL2DAC);
-    //Serial.println(dist);
-    
+    //Serial.println(dist);   
 }  
 
 
@@ -539,13 +590,6 @@ void clearBools() {
   isGaus = false;
   isTri = false;
   isDig = false;
-}
-
-void clearParamBools(){
-  // Clears dependent parameter booleans
-  isTime = false;
-  isDist = false;
-  param = '0';
 }
 
 void noFlags() {
@@ -566,20 +610,36 @@ void parseDigitalData(char digit_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   digDelay = atof(strtokIndx);     // convert this part to a float
+
+  strtokIndx = strtok(NULL, ",");
+  digParam = strtokIndx;
   
   strtokIndx = strtok(NULL, ",");
   digDuration = atof(strtokIndx);
 
+  switch (digParam){
+    case 's':
+       isDigTime = true;
+       isDigDist = false;
+       break;
+    case 'd':
+       isDigTime = false;
+       isDigDist = true;
+       break;
+  }
 
-
-  /*
-  Serial.print("Is Digital Pulse?");
-  Serial.println(isDigActive);
-  Serial.print("Digital Pulse Duration:");
-  Serial.println(digDuration);
-  Serial.print("Digital Pulse Delay");
-  Serial.println(digDelay);
-  */
+  
+  Serial.print("Is Digital Pulse? ");
+  Serial.print(isDigActive);
+  Serial.print(" Digital Pulse Duration:");
+  Serial.print(digDuration);
+  Serial.print(" Digital Pulse Delay:");
+  Serial.print(digDelay);
+  Serial.print(" Time-based?");
+  Serial.print(isDigTime);
+  Serial.print( " Distance-based?");
+  Serial.println(isDigDist);
+  
 }
 
 
@@ -597,24 +657,40 @@ void parsePulseData(char pulse_str[]) {
   pulseAmp = atof(strtokIndx);     // convert char* to a float
 
   strtokIndx = strtok(NULL, ",");
-  pulseDuration = atof(strtokIndx);
+  pulseDelay = atof(strtokIndx);     // convert this part to a float
 
   strtokIndx = strtok(NULL, ",");
-  pulseDelay = atof(strtokIndx);     // convert this part to a float
+  pulseParam = strtokIndx;
+  
+  strtokIndx = strtok(NULL, ",");
+  pulseDuration = atof(strtokIndx);
 
   pulseEnd = pulseDelay + pulseDuration;
 
-
-  /*
+  switch (pulseParam){
+    case 's':
+       isPulseTime = true;
+       isPulseDist = false;
+       break;
+    case 'd':
+       isPulseTime = false;
+       isPulseDist = true;
+       break;
+  }
+  
   Serial.print("Is Pulse?");
-  Serial.println(isPulseActive);
-  Serial.print("Pulse Amp");
-  Serial.println(pulseAmp);
-  Serial.print("Pulse Duration:");
+  Serial.print(isPulseActive);
+  Serial.print(" Pulse Amp:");
+  Serial.print(pulseAmp);
+  Serial.print(" Pulse Duration:");
   Serial.println(pulseDuration);
-  Serial.print("Pulse Delay");
-  Serial.println(pulseDelay);
-  */
+  Serial.print(" Pulse Delay:");
+  Serial.print(pulseDelay);
+  Serial.print(" Time-based?");
+  Serial.print(isPulseTime);
+  Serial.print( " Distance-based?");
+  Serial.println(isPulseDist);
+  
 }
 
 
@@ -631,17 +707,47 @@ void parseTrainData(char train_str[]) {
   strtokIndx = strtok(NULL, ",");
   trainAmp = atof(strtokIndx);     // convert char* to a float
 
-  strtokIndx = strtok(NULL, ",");
-  trainDuration = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
   trainDelay = atof(strtokIndx);     // convert this part to a float
 
   strtokIndx = strtok(NULL, ",");
+  trainParam = strtokIndx;
+  
+  strtokIndx = strtok(NULL, ",");
+  trainDuration = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  spikeParam = strtokIndx;
+  
+  strtokIndx = strtok(NULL, ",");
   trainT = atof(strtokIndx);     // convert this part to a float
 
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
+
+  switch (trainParam){
+    case 's':
+       isTrainTime = true;
+       isTrainDist = false;
+       break;
+    case 'd':
+       isTrainTime = false;
+       isTrainDist = true;
+       break;
+  }
+
+  switch (spikeParam){
+    case 's':
+       isSpikeTime = true;
+       isSpikeDist = false;
+       break;
+    case 'd':
+       isSpikeTime = false;
+       isSpikeDist = true;
+       break;
+  }
+
   
   trainTs = 1/trainT *1000;
   trainWidthTime = 1/trainWidth *1000;
@@ -649,20 +755,28 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  /*
+  
   Serial.print("Is Train?");
-  Serial.println(isTrainActive);
-  Serial.print("Train Amp");
-  Serial.println(trainAmp);
-  Serial.print("Train Duration:");
-  Serial.println(trainDuration);
-  Serial.print("Train Delay");
-  Serial.println(trainDelay);
-  Serial.print("Train Ts:");
-  Serial.println(trainTs);
-  Serial.print("Train Width");
+  Serial.print(isTrainActive);
+  Serial.print(" Train Amp:");
+  Serial.print(trainAmp);
+  Serial.print(" Train Duration:");
+  Serial.print(trainDuration);
+  Serial.print(" Train Delay:");
+  Serial.print(trainDelay);
+  Serial.print(" Train Ts:");
+  Serial.print(trainTs);
+  Serial.print(" Train Width:");
   Serial.println(trainWidth);
-  */
+  Serial.print(" Time-based Duration?");
+  Serial.print(isTrainTime);
+  Serial.print( " Distance-based?");
+  Serial.print(isTrainDist);
+  Serial.print(" Time-based Spikes?");
+  Serial.print(isSpikeTime);
+  Serial.print( " Distance-based?");
+  Serial.println(isSpikeDist);
+  
   
 }
 
@@ -755,30 +869,6 @@ void parseGausData(char g_str[]) {
   */
 }
 
-
-void parseParamData(char param_chr){
-  switch (param_chr){
-    case 's':
-      clearParamBools();
-      isTime = true;
-      break;
-    case 'd':
-      clearParamBools();
-      isDist = true;
-      break;
-    default:
-      clearParamBools();
-      break;    
-  }
-
-  /*
-  Serial.print("Is time?");
-  Serial.print(isTime);
-  Serial.print(" is dist?");
-  Serial.println(isDist);
-  */
-}
-
 // INTERUPT SERVICE ROUTINE
 
 void reset_distance(){
@@ -792,6 +882,7 @@ void reset_distance(){
   hasPulsed = false;
   hasPulsedThisLap = false;
   hasSpikedThisLap = false;
+  hasStartedTrain = false;
   doneSpiking = false;
   hasGaussed = false;
   readyToReceive = 0;
