@@ -39,14 +39,16 @@ unsigned long afterRxMillis;
 //Incoming Paramters
 
 //Dependent parameter
-char distSymbol = '7';
-char timeSymbol = '8';
+char distSym = 'd';
+char timeSym = 's';
+const char* distPtr = &distSym;
+const char* timePtr = &timeSym;
 
 // Digital Pulse params
 boolean isDigActive;
-int digDelay;
+float digDelay;
 char* digParam;
-int digDuration;
+float digDuration;
 boolean isDigTime;
 boolean isDigDist;
 boolean digPulseOn = false; // tells whether to pulse or not
@@ -68,9 +70,9 @@ unsigned long pulseStartTime;
 
 boolean isTrainActive;
 float trainAmp;
-char trainParam;
+char* trainParam;
 float trainDuration;
-char spikeParam;
+char* spikeParam;
 float trainDelay;
 float trainWidth;
 float trainEnd;
@@ -143,13 +145,13 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      //Serial.write(readyToReceive);
+      Serial.write(readyToReceive);
     }
     
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
     if (digPulseOn){
-      Serial.println("Pulsing Digital");
+      //Serial.println("Pulsing Digital");
       digitalWrite(digitalPin, HIGH);
     }
     else{
@@ -173,8 +175,8 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        delay(100);
-        Serial.print(rc);
+        //delay(100);
+        //Serial.print(rc);
         if (rc == startMarker) {
           recvInProgress = true;
           beforeRxMillis = millis();
@@ -319,7 +321,7 @@ void outputVolts(){
         hasDigPulsed = true;
       }
       else if (isDigActive && ((currTime - digTime) >= (unsigned long)digDuration && hasDigPulsed)){
-        Serial.println("dig pulse off");
+        // Serial.println("dig pulse off");
         digPulseOn = false;
       }
       else if ((!isDigActive || (dist < digDelay)) && !hasDigPulsed){
@@ -605,7 +607,7 @@ void parseDigitalData(char digit_str[]) {
     // split the data into its parts
     
   char * strtokIndx; // this is used by strtok() as an index
-  int dum;
+     
   strtokIndx = strtok(digit_str, ","); // this continues where the previous call left off
   isDigActive =(*strtokIndx=='1');     // converts char* to a boolean
 
@@ -613,28 +615,25 @@ void parseDigitalData(char digit_str[]) {
   digDelay = atof(strtokIndx);     // convert this part to a float
 
   strtokIndx = strtok(NULL, ",");
-  
-  Serial.print("param: ");
-  Serial.println(strtokIndx);
+  digParam = strtokIndx; // char* assigned to parameter
 
-  types(strtokIndx);
-  
-
-  digParam = strtokIndx;
-
-  Serial.println(digParam);
   strtokIndx = strtok(NULL, ",");
   digDuration = atof(strtokIndx);
 
-  if (strcmp(digParam, 's')){
-       isDigTime = true;
-       isDigDist = false;
+  //strcmp returns -15 if false, -12 if true
+  if ((strcmp(digParam, timePtr))>-15){
+     //Serial.println(" time");  
+     isDigTime = true;
+     isDigDist = false;
   }
-  else if(strcmp(digParam,'d')){
-       isDigTime = false;
-       isDigDist = true;
+  else{
+     //Serial.println(" dist");
+     isDigTime = false;
+     isDigDist = true;
   }
-  
+
+  /*
+  Serial.println("DIGITAL PULSE PARAMETERS");
   Serial.print("Is Digital Pulse? ");
   Serial.print(isDigActive);
   Serial.print(" Digital Pulse Duration:");
@@ -647,7 +646,7 @@ void parseDigitalData(char digit_str[]) {
   Serial.print(isDigTime);
   Serial.print( " Distance-based?");
   Serial.println(isDigDist);
-  
+  */
 }
 
 
@@ -675,18 +674,17 @@ void parsePulseData(char pulse_str[]) {
 
   pulseEnd = pulseDelay + pulseDuration;
 
-  /*
-  switch (pulseParam){
-    case 's':
+  
+  if ((strcmp(pulseParam, timePtr))>-15){
        isPulseTime = true;
        isPulseDist = false;
-       break;
-    case 'd':
+  }
+  else{
        isPulseTime = false;
        isPulseDist = true;
-       break;
   }
-  */
+  
+  /*
   Serial.print("Is Pulse?");
   Serial.print(isPulseActive);
   Serial.print(" Pulse Amp:");
@@ -699,7 +697,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.print(isPulseTime);
   Serial.print( " Distance-based?");
   Serial.println(isPulseDist);
-  
+  */
 }
 
 
@@ -735,26 +733,22 @@ void parseTrainData(char train_str[]) {
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
 
-  switch (trainParam){
-    case 's':
+  if ((strcmp(trainParam, timePtr))>-15){
        isTrainTime = true;
        isTrainDist = false;
-       break;
-    case 'd':
+  }
+  else{
        isTrainTime = false;
        isTrainDist = true;
-       break;
   }
 
-  switch (spikeParam){
-    case 's':
+  if ((strcmp(spikeParam, timePtr))>-15){
        isSpikeTime = true;
        isSpikeDist = false;
-       break;
-    case 'd':
+  }
+  else{
        isSpikeTime = false;
        isSpikeDist = true;
-       break;
   }
 
   
@@ -764,7 +758,7 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  
+  /*
   Serial.print("Is Train?");
   Serial.print(isTrainActive);
   Serial.print(" Train Amp:");
@@ -785,7 +779,7 @@ void parseTrainData(char train_str[]) {
   Serial.print(isSpikeTime);
   Serial.print( " Distance-based?");
   Serial.println(isSpikeDist);
-  
+  */
   
 }
 
@@ -913,4 +907,5 @@ void reset_distance(){
 void types(String a){Serial.println("it's a String");}
 void types(int a)   {Serial.println("it's an int");}
 void types(char* a) {Serial.println("it's a char*");}
-void types(float a) {Serial.println("it's a float");} 
+void types(float a) {Serial.println("it's a float");}
+void types(boolean a) {Serial.println("it's a boolean");} 
