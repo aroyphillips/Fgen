@@ -595,16 +595,15 @@ void outputVolts(){
                   hasSpiked = false;
                   ptStart = ptStart + trainT;
                 } 
-                
-                else if (currTime >= (trainStartTime + trainDuration)){
-                  if(hasSpiked) {
-                    value = value - trainAmp;
-                    hasSpiked = false;
-                  }
-                  doneSpiking =true;
-                  //Serial.println("Done spiking");
+              }                                
+              else if (currTime >= (trainStartTime + trainDuration)){
+                if(hasSpiked) {
+                  value = value - trainAmp;
+                  hasSpiked = false;
                 }
-              }          
+                doneSpiking =true;
+                //Serial.println("Done spiking");
+              }         
             }
           }
        }
