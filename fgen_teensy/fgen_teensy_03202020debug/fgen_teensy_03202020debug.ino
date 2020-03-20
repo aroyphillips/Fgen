@@ -314,8 +314,8 @@ void outputVolts(){
 
     if(isDigTime){
       if (isDigActive && dist> digDelay && !hasDigPulsed){
-       //Serial.print("Turning dig pulse on, duration ");
-       //Serial.println(digDuration);
+       Serial.print("Turning dig pulse on, duration ");
+       Serial.println(digDuration);
         digPulseOn = true;
         digTime = millis();
         hasDigPulsed = true;
