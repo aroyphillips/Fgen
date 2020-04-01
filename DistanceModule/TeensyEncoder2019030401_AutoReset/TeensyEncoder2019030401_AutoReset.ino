@@ -98,7 +98,7 @@ void encoderInt()
 }
 void setup()
 {
-  Serial.begin(192000);
+  //Serial.begin(192000);
  // while( !Serial);   // if no serial USB is connected, may need to comment this out
   pinMode(encAPin, INPUT_PULLUP); // sets the digital pin as input
   pinMode(encBPin, INPUT_PULLUP); // sets the digital pin as input
@@ -139,7 +139,7 @@ void loop()
   digitalWrite(triggerPin, LOW);
 //      float dacdist = distance / 18000.0f * 3.3f; // scales the distance down to the output voltage of the DAC, division by 2000 to get portion of track length
 
-  
+  /*
   Serial.print(distance);
   Serial.print(",");
   Serial.print(runSpeed);   
@@ -149,8 +149,9 @@ void loop()
   Serial.print(resetFlag);
   Serial.print(" : ");
   Serial.println(currTime-pulseTimer); 
+  */
   
-  if ((currTime-pulseTimer>100)&& resetFlag){
+  if ((currTime-pulseTimer>500)&& resetFlag){
      //Serial.println("RESET DONE");
      resetFlag = false;
      digitalWrite(resetPin, HIGH);
