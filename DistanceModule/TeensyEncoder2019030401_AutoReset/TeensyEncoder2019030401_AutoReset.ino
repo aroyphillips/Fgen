@@ -139,7 +139,7 @@ void loop()
   digitalWrite(triggerPin, LOW);
 //      float dacdist = distance / 18000.0f * 3.3f; // scales the distance down to the output voltage of the DAC, division by 2000 to get portion of track length
 
-  /*
+  
   Serial.print(distance);
   Serial.print(",");
   Serial.print(runSpeed);   
@@ -149,7 +149,7 @@ void loop()
   Serial.print(resetFlag);
   Serial.print(" : ");
   Serial.println(currTime-pulseTimer); 
-  */
+  
   
   if ((currTime-pulseTimer>500)&& resetFlag){
      //Serial.println("RESET DONE");
