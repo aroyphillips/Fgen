@@ -174,7 +174,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      Serial.write(readyToReceive);
+      //Serial.write(readyToReceive);
     }
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
@@ -567,7 +567,7 @@ void outputVolts(){
           }
         }
         else if (hasSpiked && (dist>trainEnd)){
-          value = value - trainAmp2;
+          value = value - trainAmp;
           hasSpiked = false;
           doneSpiking = true;
         }
@@ -663,7 +663,7 @@ void outputVolts(){
             if (!hasSpiked2 && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
               value = value + trainAmp2;
               hasSpiked2 = true;
-              
+              /*
               Serial.print("Spiking up:");
               Serial.print(dist);
               Serial.print(" start:");
@@ -672,7 +672,7 @@ void outputVolts(){
               Serial.print(trainWidth);
               Serial.print(" Output: ");
               Serial.println(value);
-              
+              */
               
               
             }
@@ -681,7 +681,7 @@ void outputVolts(){
               hasSpiked2 = false;
               ptStart2 = ptStart2 + trainT2;
       
-              
+              /*
               Serial.print("Spiking Down:");
               Serial.print(dist);
               Serial.print(" start:");
@@ -690,7 +690,7 @@ void outputVolts(){
               Serial.print(trainT);
               Serial.print(" Output: ");
               Serial.println(value);
-              
+              */
             } 
           }
           
@@ -740,7 +740,7 @@ void outputVolts(){
               /*
               Serial.print("Spiking Down:");
               Serial.print(currTime);
-              Serial.print(" start:");e
+              Serial.print(" start:");
               Serial.print(ptStart);
               Serial.print(" period: ");
               Serial.print(trainTs);
@@ -751,8 +751,7 @@ void outputVolts(){
           }
         }
         else if (hasSpiked2 && (dist>trainEnd2)){
-          Serial.println("SAFETY SPIKE DOWN");
-          value = value - trainAmp;
+          value = value - trainAmp2;
           hasSpiked2 = false;
           doneSpiking2 = true;
         }        
@@ -812,13 +811,13 @@ void outputVolts(){
             else if(isSpikeDist2){
   
               if (currTime < (trainStartTime2 +trainDuration2)){
-                if (!hasSpiked && ((dist-ptStart)<trainWidth2) && ((dist-ptStart2)>0)){
-                //Serial.println("Spiking Up");
+                if (!hasSpiked && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
+                Serial.println("Spiking Up");
                 value = value + trainAmp2;
                 hasSpiked2 = true;
                 }
                 else if(hasSpiked2 && (dist-ptStart2)<trainT2 && ((dist-ptStart2)>trainWidth2)){
-                  //Serial.println("Spiking Down");
+                  Serial.println("Spiking Down");
                   value = value - trainAmp2;
                   hasSpiked2 = false;
                   ptStart2 = ptStart2 + trainT2;
@@ -830,7 +829,7 @@ void outputVolts(){
                   hasSpiked2 = false;
                 }
                 doneSpiking2 =true;
-                //Serial.println("Done spiking");
+                Serial.println("Done spiking");
               }         
             }
           }
