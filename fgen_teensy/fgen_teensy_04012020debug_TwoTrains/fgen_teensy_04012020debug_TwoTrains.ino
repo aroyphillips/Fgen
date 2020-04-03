@@ -174,12 +174,12 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-//      Serial.write(readyToReceive);
+      Serial.write(readyToReceive);
     }
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
     if (digPulseOn){
-      Serial.println("Pulsing Digital");
+      //Serial.println("Pulsing Digital");
       digitalWrite(digitalPin, HIGH);
     }
     else{
@@ -567,11 +567,88 @@ void outputVolts(){
           }
         }
         else if (hasSpiked && (dist>trainEnd)){
-          value = value - trainAmp;
+          value = value - trainAmp2;
           hasSpiked = false;
           doneSpiking = true;
         }
       }
+      // TIME DURATION
+         else if(isTrainTime){
+    
+          if ((dist>trainDelay) && !doneSpiking){
+            // start train
+            if(!hasStartedTrain){
+              //Serial.println("Starting train");
+              trainStartTime = millis();
+              hasStartedTrain = true;
+            }
+            // HZ SPIKES
+            if (isSpikeTime){
+                if (!hasSpikedThisLap){
+                  hasSpikedThisLap = true;
+                  ptStartTime = millis();
+                  currTime = millis();
+                 
+                }
+
+                if (currTime < (trainStartTime +trainDuration)){
+                  //Serial.print("Condition:");
+                  //Serial.println(currTime-ptStartTime);
+                  if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
+    
+                    //Serial.print("spiking up:");
+                    //Serial.println(currTime);
+                    value = value + trainAmp; 
+                    hasSpiked = true;
+                    
+                  }
+                  else if(hasSpiked && (currTime-ptStartTime)<=trainTs && ((currTime-ptStartTime)>trainWidthTime)){
+                    value = value - trainAmp;
+                    hasSpiked = false;
+                    ptStartTime = ptStartTime + trainTs;
+                    //Serial.print("spiking down:");
+                    //Serial.println(currTime);
+                    //Serial.println(ptStartTime);
+                  }
+                  
+                }
+                else if (currTime >= (trainStartTime + trainDuration)){
+                  if(hasSpiked) {
+                    value = value - trainAmp;
+                    hasSpiked = false;
+                  }
+                  doneSpiking =true;
+                  //Serial.println("Done spiking");
+                }
+            }
+  
+              //DIST SPIKES
+            else if(isSpikeDist){
+  
+              if (currTime < (trainStartTime +trainDuration)){
+                if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+                //Serial.println("Spiking Up");
+                value = value + trainAmp;
+                hasSpiked = true;
+                }
+                else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+                  //Serial.println("Spiking Down");
+                  value = value - trainAmp;
+                  hasSpiked = false;
+                  ptStart = ptStart + trainT;
+                } 
+              }                                
+              else if (currTime >= (trainStartTime + trainDuration)){
+                if(hasSpiked) {
+                  value = value - trainAmp;
+                  hasSpiked = false;
+                }
+                doneSpiking =true;
+                //Serial.println("Done spiking");
+              }         
+            }
+          }
+       }
     }
 
     // Pulse Train 2
@@ -586,7 +663,7 @@ void outputVolts(){
             if (!hasSpiked2 && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
               value = value + trainAmp2;
               hasSpiked2 = true;
-              /*
+              
               Serial.print("Spiking up:");
               Serial.print(dist);
               Serial.print(" start:");
@@ -595,7 +672,7 @@ void outputVolts(){
               Serial.print(trainWidth);
               Serial.print(" Output: ");
               Serial.println(value);
-              */
+              
               
               
             }
@@ -604,7 +681,7 @@ void outputVolts(){
               hasSpiked2 = false;
               ptStart2 = ptStart2 + trainT2;
       
-              /*
+              
               Serial.print("Spiking Down:");
               Serial.print(dist);
               Serial.print(" start:");
@@ -613,7 +690,7 @@ void outputVolts(){
               Serial.print(trainT);
               Serial.print(" Output: ");
               Serial.println(value);
-              */
+              
             } 
           }
           
@@ -663,7 +740,7 @@ void outputVolts(){
               /*
               Serial.print("Spiking Down:");
               Serial.print(currTime);
-              Serial.print(" start:");
+              Serial.print(" start:");e
               Serial.print(ptStart);
               Serial.print(" period: ");
               Serial.print(trainTs);
@@ -674,10 +751,11 @@ void outputVolts(){
           }
         }
         else if (hasSpiked2 && (dist>trainEnd2)){
+          Serial.println("SAFETY SPIKE DOWN");
           value = value - trainAmp;
           hasSpiked2 = false;
           doneSpiking2 = true;
-        }
+        }        
       }
   
       // TIME DURATION
@@ -863,7 +941,7 @@ void parsePulseData(char pulse_str[]) {
        isPulseDist = true;
   }
   
-  
+  /*
   Serial.print("Is Pulse?");
   Serial.print(isPulseActive);
   Serial.print(" Pulse Amp:");
@@ -876,7 +954,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.print(isPulseTime);
   Serial.print( " Distance-based?");
   Serial.println(isPulseDist);
-  
+  */
 }
 
 
@@ -1146,7 +1224,7 @@ void parseGausData(char g_str[]) {
 // INTERUPT SERVICE ROUTINE
 
 void reset_distance(){
-  Serial.println("RESET");
+  
   value = 0;
   analogWrite(AOut,0);
 
