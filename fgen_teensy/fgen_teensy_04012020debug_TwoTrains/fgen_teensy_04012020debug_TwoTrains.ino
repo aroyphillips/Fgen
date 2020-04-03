@@ -811,7 +811,7 @@ void outputVolts(){
             else if(isSpikeDist2){
   
               if (currTime < (trainStartTime2 +trainDuration2)){
-                if (!hasSpiked && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
+                if (!hasSpiked2 && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
                 Serial.println("Spiking Up");
                 value = value + trainAmp2;
                 hasSpiked2 = true;
