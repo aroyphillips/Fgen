@@ -173,7 +173,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      //Serial.write(readyToReceive);
+      Serial.write(readyToReceive);
     }
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
@@ -202,8 +202,8 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        delay(100);
-        Serial.print(rc);
+        //delay(100);
+        //Serial.print(rc);
         if (rc == startMarker) {
           recvInProgress = true;
         }
@@ -526,12 +526,12 @@ void outputVolts(){
               
             }
             //Serial.println(ptStartTime);
-            Serial.println(currTime);
+            //Serial.println(currTime);
             if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
               value = value + trainAmp;
               hasSpiked = true;
 
-              
+              /*
               Serial.print("Spiking up:");
               Serial.print(currTime);
               Serial.print(" start:");
@@ -542,7 +542,7 @@ void outputVolts(){
               Serial.print(trainTs);
               Serial.print(" Output: ");
               Serial.println(value);
-              
+              */
               
               
             }
@@ -551,7 +551,7 @@ void outputVolts(){
               hasSpiked = false;
               ptStartTime = ptStartTime + trainTs;
       
-              
+              /*
               Serial.print("Spike Down:");
               Serial.print(currTime);
               Serial.print(" start:");
@@ -562,7 +562,7 @@ void outputVolts(){
               Serial.print(trainTs);
               Serial.print(" Output: ");
               Serial.println(value);
-              
+              */
             }  
           }
         }
@@ -1082,7 +1082,7 @@ void parseTrain2Data(char train_str2[]) {
   if ((strcmp(trainParam2, timePtr))>-15){
        isTrainTime2 = true;
        isTrainDist2 = false;
-       trainDuration2 = trainDuration *1000;
+       trainDuration2 = trainDuration2 *1000;
   }
   else{
        isTrainTime2 = false;
@@ -1105,33 +1105,33 @@ void parseTrain2Data(char train_str2[]) {
   ptStart2 = trainDelay2;
   hasSpiked2 = false;
 
-  
-  Serial.println("TRAIN 2");
+  /*
+  Serial.println("TRAIN");
   Serial.print("Is Train?");
-  Serial.print(isTrainActive2);
+  Serial.print(isTrainActive);
   Serial.print(" Train Amp:");
-  Serial.print(trainAmp2);
+  Serial.print(trainAmp);
   Serial.print(" Train Duration:");
-  Serial.print(trainDuration2);
+  Serial.print(trainDuration);
   Serial.print(" Train Delay:");
-  Serial.print(trainDelay2);
+  Serial.print(trainDelay);
   Serial.print(" Train Ts:");
-  Serial.print(trainTs2);
+  Serial.print(trainTs);
   Serial.print(" Train Prd:");
-  Serial.print(trainT2);
+  Serial.print(trainT);
   Serial.print(" Width time:");
-  Serial.print(trainWidthTime2);
+  Serial.print(trainWidthTime);
   Serial.print(" Train Width:");
-  Serial.print(trainWidth2);
+  Serial.print(trainWidth);
   Serial.print(" Time-based Duration?");
-  Serial.print(isTrainTime2);
+  Serial.print(isTrainTime);
   Serial.print( " Distance-based?");
-  Serial.print(isTrainDist2);
+  Serial.print(isTrainDist);
   Serial.print(" Time-based Spikes?");
-  Serial.print(isSpikeTime2);
+  Serial.print(isSpikeTime);
   Serial.print( " Distance-based?");
-  Serial.println(isSpikeDist2);
-  
+  Serial.println(isSpikeDist);
+  */
   
 }
 
