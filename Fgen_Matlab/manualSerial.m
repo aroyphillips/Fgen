@@ -4,18 +4,22 @@ if ~isempty(coms)
     fclose(coms);
 end
 
-SerialID = serial('COM13', 'Baudrate',9600);
+SerialID = serial('COM4', 'Baudrate',9600);
 fopen(SerialID);
 
+N = 1000;
+tests = NaN(1,N);
+tic
+for ii = 1:N
+flushinput(SerialID);
+this = fread(SerialID,1, 'char') == 49
+tests(ii) = this;
+end
+toc
 
 
-test4 = fread(SerialID, 512,'char');
 
-
-amp = 3;
-
-
-teststr = '<^1,2,100,80,30!>';
+%teststr = '<^1,2,100,80,30!>';
 %{
 for char = teststr
     fwrite(SerialID,char);

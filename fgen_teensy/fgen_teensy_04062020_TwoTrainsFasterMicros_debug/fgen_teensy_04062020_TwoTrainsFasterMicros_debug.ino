@@ -1082,7 +1082,7 @@ void parseTrain2Data(char train_str2[]) {
   if ((strcmp(trainParam2, timePtr))>-15){
        isTrainTime2 = true;
        isTrainDist2 = false;
-       trainDuration2 = trainDuration *1000;
+       trainDuration2 = trainDuration2 *1000;
   }
   else{
        isTrainTime2 = false;
