@@ -175,7 +175,7 @@ void loop() {
     //if (Serial.availableForWrite()>0){
       //Serial.write((byte) readyToReceive);
     //}
-    Serial.println(readyToReceive);
+    Serial.println((char) readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
     if (digPulseOn){
       //Serial.println("Pulsing Digital");
