@@ -12,19 +12,19 @@ SerialID = serial('COM4', 'BaudRate', 9600);
 fopen(SerialID);
 test2= 0;
 
-SerialID.Terminator = 'LF';
+% SerialID.Terminator = 'LF';
 % for i = 1:10
 t0 = tic;
 dt = 0;
-while (dt<60)
+while (dt<30)
      dt = toc(t0);
      flushinput(SerialID);
-     test = fread(SerialID,1,'char');
-     test2 = fscanf(SerialID,'%s', 1) == 49;
-%      fprintf("Reading: %g \n", test);
-     if test2         
+     test = fread(SerialID,1) == 255;
+%      test2 = fscanf(SerialID,'%g', 1);
+%      fprintf("Reading: %g \n", test == 255);
+     if test         
          fprintf("Timing = %g \n", dt);
-         fprintf("Scaning: %g \n", test2);
+         fprintf("Reading: %g \n", test);
          fprintf("__________\n");
      end
 end
