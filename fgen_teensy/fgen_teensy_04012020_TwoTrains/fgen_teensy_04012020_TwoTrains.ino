@@ -164,7 +164,7 @@ void setup() {
     pinMode(digitalPin, OUTPUT);
     analogWriteResolution(12);
     analogReadResolution(12);
-    attachInterrupt(rstPin, reset_distance, RISING);
+    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, RISING);
     Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
     //Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
