@@ -472,104 +472,107 @@ void outputVolts(){
       
       // DISTANCE DURATION
       if (isTrainDist){
-        if ((dist>trainDelay) && (dist<trainEnd) && !doneSpiking){
-          if(isSpikeDist){
-            //Distance-based Spikes
+        if (((dist>trainDelay) || hasStartedTrain) && !doneSpiking){
+          hasStartedTrain = true;
+          if (dist<trainEnd){
+            if(isSpikeDist){
+              //Distance-based Spikes
+              
+              if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
+                value = value + trainAmp;
+                hasSpiked = true;
+                /*
+                Serial.print("Spiking up:");
+                Serial.print(dist);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" width: ");
+                Serial.print(trainWidth);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+                
+                
+              }
+              else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
+                value = value - trainAmp;
+                hasSpiked = false;
+                ptStart = ptStart + trainT;
+        
+                /*
+                Serial.print("Spiking Down:");
+                Serial.print(dist);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" period: ");
+                Serial.print(trainT);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+              } 
+            }
             
-            if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
-              value = value + trainAmp;
-              hasSpiked = true;
-              /*
-              Serial.print("Spiking up:");
-              Serial.print(dist);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" width: ");
-              Serial.print(trainWidth);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-              
-              
-            }
-            else if(hasSpiked && (dist-ptStart)<trainT && ((dist-ptStart)>trainWidth)){
-              value = value - trainAmp;
-              hasSpiked = false;
-              ptStart = ptStart + trainT;
-      
-              /*
-              Serial.print("Spiking Down:");
-              Serial.print(dist);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" period: ");
-              Serial.print(trainT);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-            } 
-          }
-          
-          else if (isSpikeTime){
-  
-            //Time-Based Spikes
-            if (!hasSpikedThisLap){
-              hasSpikedThisLap = true;
-              ptStartTime = millis();
-              currTime = millis();
+            else if (isSpikeTime){
     
-              /*
-              Serial.println(ptStart);
-              Serial.println(currTime); 
-              Serial.println((currTime-ptStart)<=trainWidthTime);
-              Serial.println((currTime-ptStart)>=0);
-              Serial.println(!hasSpiked);
-              */
-              
-            }
-            //Serial.println(ptStartTime);
-            //Serial.println(currTime);
-            if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
-              value = value + trainAmp;
-              hasSpiked = true;
-
-              /*
-              Serial.print("Spiking up:");
-              Serial.print(currTime);
-              Serial.print(" start:");
-              Serial.print(ptStartTime);
-              Serial.print(" width: ");
-              Serial.print(trainWidthTime);
-              Serial.print(" train T:");
-              Serial.print(trainTs);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-              
-              
-            }
-            else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
-              value = value - trainAmp;
-              hasSpiked = false;
-              ptStartTime = ptStartTime + trainTs;
+              //Time-Based Spikes
+              if (!hasSpikedThisLap){
+                hasSpikedThisLap = true;
+                ptStartTime = millis();
+                currTime = millis();
       
-              /*
-              Serial.print("Spiking Down:");
-              Serial.print(currTime);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" period: ");
-              Serial.print(trainTs);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-            }  
+                /*
+                Serial.println(ptStart);
+                Serial.println(currTime); 
+                Serial.println((currTime-ptStart)<=trainWidthTime);
+                Serial.println((currTime-ptStart)>=0);
+                Serial.println(!hasSpiked);
+                */
+                
+              }
+              //Serial.println(ptStartTime);
+              //Serial.println(currTime);
+              if (!hasSpiked && ((currTime-ptStartTime)<=trainWidthTime) && ((currTime-ptStartTime)>=0)){
+                value = value + trainAmp;
+                hasSpiked = true;
+  
+                /*
+                Serial.print("Spiking up:");
+                Serial.print(currTime);
+                Serial.print(" start:");
+                Serial.print(ptStartTime);
+                Serial.print(" width: ");
+                Serial.print(trainWidthTime);
+                Serial.print(" train T:");
+                Serial.print(trainTs);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+                
+                
+              }
+              else if(hasSpiked && (currTime-ptStartTime)<trainTs && ((currTime-ptStartTime)>trainWidthTime)){
+                value = value - trainAmp;
+                hasSpiked = false;
+                ptStartTime = ptStartTime + trainTs;
+        
+                /*
+                Serial.print("Spiking Down:");
+                Serial.print(currTime);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" period: ");
+                Serial.print(trainTs);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+              }  
+            }
           }
-        }
-        else if (hasSpiked && (dist>trainEnd)){
-          value = value - trainAmp;
-          hasSpiked = false;
-          doneSpiking = true;
+          else if (hasSpiked && (dist>trainEnd)){
+            value = value - trainAmp;
+            hasSpiked = false;
+            doneSpiking = true;
+          }
         }
       }
       // TIME DURATION
@@ -656,105 +659,108 @@ void outputVolts(){
       
       // DISTANCE DURATION
       if (isTrainDist2){
-        if ((dist>trainDelay2) && (dist<trainEnd2) && !doneSpiking2){
-          if(isSpikeDist2){
-            //Distance-based Spikes
+        if (((dist>trainDelay2) || hasStartedTrain2)&& !doneSpiking2){
+          hasStartedTrain2 = true;
+          if (dist<trainEnd2){
+            if(isSpikeDist2){
+              //Distance-based Spikes
+              
+              if (!hasSpiked2 && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
+                value = value + trainAmp2;
+                hasSpiked2 = true;
+                /*
+                Serial.print("Spiking up:");
+                Serial.print(dist);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" width: ");
+                Serial.print(trainWidth);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+                
+                
+              }
+              else if(hasSpiked2 && (dist-ptStart2)<trainT2 && ((dist-ptStart2)>trainWidth2)){
+                value = value - trainAmp2;
+                hasSpiked2 = false;
+                ptStart2 = ptStart2 + trainT2;
+        
+                /*
+                Serial.print("Spiking Down:");
+                Serial.print(dist);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" period: ");
+                Serial.print(trainT);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+              } 
+            }
             
-            if (!hasSpiked2 && ((dist-ptStart2)<trainWidth2) && ((dist-ptStart2)>0)){
-              value = value + trainAmp2;
-              hasSpiked2 = true;
-              /*
-              Serial.print("Spiking up:");
-              Serial.print(dist);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" width: ");
-              Serial.print(trainWidth);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-              
-              
-            }
-            else if(hasSpiked2 && (dist-ptStart2)<trainT2 && ((dist-ptStart2)>trainWidth2)){
-              value = value - trainAmp2;
-              hasSpiked2 = false;
-              ptStart2 = ptStart2 + trainT2;
-      
-              /*
-              Serial.print("Spiking Down:");
-              Serial.print(dist);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" period: ");
-              Serial.print(trainT);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-            } 
-          }
-          
-          else if (isSpikeTime2){
-  
-            //Time-Based Spikes
-            if (!hasSpikedThisLap2){
-              hasSpikedThisLap2 = true;
-              ptStartTime2 = millis();
-              currTime = millis();
+            else if (isSpikeTime2){
     
-              /*
-              Serial.println(ptStart);
-              Serial.println(currTime); 
-              Serial.println((currTime-ptStart)<=trainWidthTime);
-              Serial.println((currTime-ptStart)>=0);
-              Serial.println(!hasSpiked);
-              */
-              
-            }
-            //Serial.println(ptStartTime);
-            //Serial.println(currTime);
-            if (!hasSpiked2 && ((currTime-ptStartTime2)<=trainWidthTime2) && ((currTime-ptStartTime2)>=0)){
-              value = value + trainAmp2;
-              hasSpiked2 = true;
-
-              /*
-              Serial.print("Spiking up:");
-              Serial.print(currTime);
-              Serial.print(" start:");
-              Serial.print(ptStartTime);
-              Serial.print(" width: ");
-              Serial.print(trainWidthTime);
-              Serial.print(" train T:");
-              Serial.print(trainTs);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-              
-              
-            }
-            else if(hasSpiked2 && (currTime-ptStartTime2)<trainTs2 && ((currTime-ptStartTime2)>trainWidthTime2)){
-              value = value - trainAmp2;
-              hasSpiked2 = false;
-              ptStartTime2 = ptStartTime2 + trainTs2;
+              //Time-Based Spikes
+              if (!hasSpikedThisLap2){
+                hasSpikedThisLap2 = true;
+                ptStartTime2 = millis();
+                currTime = millis();
       
-              /*
-              Serial.print("Spiking Down:");
-              Serial.print(currTime);
-              Serial.print(" start:");
-              Serial.print(ptStart);
-              Serial.print(" period: ");
-              Serial.print(trainTs);
-              Serial.print(" Output: ");
-              Serial.println(value);
-              */
-            }  
+                /*
+                Serial.println(ptStart);
+                Serial.println(currTime); 
+                Serial.println((currTime-ptStart)<=trainWidthTime);
+                Serial.println((currTime-ptStart)>=0);
+                Serial.println(!hasSpiked);
+                */
+                
+              }
+              //Serial.println(ptStartTime);
+              //Serial.println(currTime);
+              if (!hasSpiked2 && ((currTime-ptStartTime2)<=trainWidthTime2) && ((currTime-ptStartTime2)>=0)){
+                value = value + trainAmp2;
+                hasSpiked2 = true;
+  
+                /*
+                Serial.print("Spiking up:");
+                Serial.print(currTime);
+                Serial.print(" start:");
+                Serial.print(ptStartTime);
+                Serial.print(" width: ");
+                Serial.print(trainWidthTime);
+                Serial.print(" train T:");
+                Serial.print(trainTs);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+                
+                
+              }
+              else if(hasSpiked2 && (currTime-ptStartTime2)<trainTs2 && ((currTime-ptStartTime2)>trainWidthTime2)){
+                value = value - trainAmp2;
+                hasSpiked2 = false;
+                ptStartTime2 = ptStartTime2 + trainTs2;
+        
+                /*
+                Serial.print("Spiking Down:");
+                Serial.print(currTime);
+                Serial.print(" start:");
+                Serial.print(ptStart);
+                Serial.print(" period: ");
+                Serial.print(trainTs);
+                Serial.print(" Output: ");
+                Serial.println(value);
+                */
+              }  
+            }
           }
-        }
-        else if (hasSpiked2 && (dist>trainEnd2)){
-          value = value - trainAmp2;
-          hasSpiked2 = false;
-          doneSpiking2 = true;
-        }        
+          else if (hasSpiked2 && (dist>trainEnd2)){
+            value = value - trainAmp2;
+            hasSpiked2 = false;
+            doneSpiking2 = true;
+          }      
+        }  
       }
   
       // TIME DURATION
