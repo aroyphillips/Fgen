@@ -123,7 +123,7 @@ boolean hasPulsed = false; // indicates whether pulse needs to be brought to res
 float dist;
 volatile float distCorrection;
 
-byte readyToReceive = 0;
+byte readyToReceive = 0x00;
 
 void setup() {
     pinMode(AOut, OUTPUT);
@@ -139,13 +139,11 @@ void setup() {
 }
 
 void loop() {
-    
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
       Serial.write(readyToReceive);
     }
-    
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
     if (digPulseOn){
@@ -173,8 +171,8 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        delay(50);
-        Serial.print(rc);
+        //delay(100);
+        //Serial.print(rc);
         if (rc == startMarker) {
           recvInProgress = true;
         }
@@ -295,7 +293,7 @@ void outputVolts(){
     
     float currDist;
     currDist = analogRead(distPin)/VAL2DAC*100;
-    dist = currDist-distCorrection;
+    dist = currDist; //-distCorrection;
     //Serial.print("Distance: ");
     //Serial.println(dist);
     //Serial.println(dist> digDelay);
@@ -304,7 +302,10 @@ void outputVolts(){
     // check each possible shape output and modify output volt accordingly
     // Serial.println(readyToReceive);
     if (dist>170){
-      readyToReceive = '1';
+      readyToReceive = 0xFF; // hex code for 0b 1111 1111
+    }
+    else{
+      readyToReceive = 0x00;
     }
 
     // DIGITAL PULSE FLAG
@@ -426,17 +427,18 @@ void outputVolts(){
       
       // DISTANCE DURATION
       if (isTrainDist){
-        if (((dist>trainDelay) || hasStartedTrain) && !doneSpiking){
-          //Serial.print("in zone")
-          hasStartedTrain = true; // This condition allows time based spike trains to go on if the distance fluctuates near the start
-          if (dist<trainEnd){
+        if(((dist>trainDelay) || hasStartedTrain)&& !doneSpiking){
+          // Condition makes stimulus continue after animal reaches start point, even if distance fluctuates below
+          hasStartedTrain = true;
+          
+          if ((dist<trainEnd)){
             if(isSpikeDist){
               //Distance-based Spikes
               
               if (!hasSpiked && ((dist-ptStart)<trainWidth) && ((dist-ptStart)>0)){
                 value = value + trainAmp;
                 hasSpiked = true;
-                
+                /*
                 Serial.print("Spiking up:");
                 Serial.print(dist);
                 Serial.print(" start:");
@@ -445,7 +447,7 @@ void outputVolts(){
                 Serial.print(trainWidth);
                 Serial.print(" Output: ");
                 Serial.println(value);
-                
+                */
                 
                 
               }
@@ -454,7 +456,7 @@ void outputVolts(){
                 hasSpiked = false;
                 ptStart = ptStart + trainT;
         
-                
+                /*
                 Serial.print("Spiking Down:");
                 Serial.print(dist);
                 Serial.print(" start:");
@@ -463,7 +465,7 @@ void outputVolts(){
                 Serial.print(trainT);
                 Serial.print(" Output: ");
                 Serial.println(value);
-                
+                */
               } 
             }
             
@@ -475,13 +477,13 @@ void outputVolts(){
                 ptStartTime = micros();
                 currTime = micros();
       
-                
+                /*
                 Serial.println(ptStart);
                 Serial.println(currTime); 
                 Serial.println((currTime-ptStart)<=trainWidthTime);
                 Serial.println((currTime-ptStart)>=0);
                 Serial.println(!hasSpiked);
-                
+                */
                 
               }
               //Serial.println(ptStartTime);
@@ -490,7 +492,7 @@ void outputVolts(){
                 value = value + trainAmp;
                 hasSpiked = true;
   
-                
+                /*
                 Serial.print("Spiking up:");
                 Serial.print(currTime);
                 Serial.print(" start:");
@@ -501,16 +503,16 @@ void outputVolts(){
                 Serial.print(trainTs);
                 Serial.print(" Output: ");
                 Serial.println(value);
-              
-              
-              
+                */
+                
+                
               }
               else if(hasSpiked && (currTime-ptStartTime)<=trainTs && ((currTime-ptStartTime)>trainWidthTime)){
                 value = value - trainAmp;
                 hasSpiked = false;
                 ptStartTime = ptStartTime + trainTs;
         
-                
+                /*
                 Serial.print("Spiking Down:");
                 Serial.print(currTime);
                 Serial.print(" start:");
@@ -519,15 +521,14 @@ void outputVolts(){
                 Serial.print(trainTs);
                 Serial.print(" Output: ");
                 Serial.println(value);
-                
+                */
               }  
             }
           }
           else if (hasSpiked && (dist>trainEnd)){
-            Serial.println("END TRAIN");
             value = value - trainAmp;
             hasSpiked = false;
-            doneSpiking = true;           
+            doneSpiking = true;
           }
         }
       }
@@ -715,7 +716,7 @@ void parsePulseData(char pulse_str[]) {
        isPulseDist = true;
   }
   
-  
+  /*
   Serial.print("Is Pulse?");
   Serial.print(isPulseActive);
   Serial.print(" Pulse Amp:");
@@ -728,7 +729,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.print(isPulseTime);
   Serial.print( " Distance-based?");
   Serial.println(isPulseDist);
-  
+  */
 }
 
 
@@ -790,7 +791,7 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  
+  /*
   Serial.println("TRAIN");
   Serial.print("Is Train?");
   Serial.print(isTrainActive);
@@ -816,7 +817,7 @@ void parseTrainData(char train_str[]) {
   Serial.print(isSpikeTime);
   Serial.print( " Distance-based?");
   Serial.println(isSpikeDist);
-  
+  */
   
 }
 
@@ -925,7 +926,7 @@ void reset_distance(){
   hasStartedTrain = false;
   doneSpiking = false;
   hasGaussed = false;
-  readyToReceive = 0;
+  readyToReceive = 0x00;
   digPulseOn = false;
   hasDigPulsed = false;
   

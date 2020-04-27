@@ -12,7 +12,7 @@ tests = NaN(1,N);
 tic
 for ii = 1:N
 flushinput(SerialID);
-this = fread(SerialID,1, 'char') == 49
+this = fread(SerialID,1, 'uint8')==255
 tests(ii) = this;
 end
 toc
