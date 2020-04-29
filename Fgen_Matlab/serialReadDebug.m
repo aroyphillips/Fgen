@@ -10,23 +10,26 @@ end
 
 SerialID = serial('COM4', 'BaudRate', 9600);
 fopen(SerialID);
-test2= 0;
 
 % SerialID.Terminator = 'LF';
 % for i = 1:10
 t0 = tic;
 dt = 0;
+
+N= 10^6;
+tests = NaN(2,N);
+ii = 1;
 while (dt<30)
      dt = toc(t0);
      flushinput(SerialID);
-     test = fread(SerialID,1) == 255;
-%      test2 = fscanf(SerialID,'%g', 1);
-%      fprintf("Reading: %g \n", test == 255);
+     test = fread(SerialID,1, 'uint8') == 255;
      if test         
          fprintf("Timing = %g \n", dt);
          fprintf("Reading: %g \n", test);
          fprintf("__________\n");
      end
+     tests(:,ii) = [test;dt];
+     ii = ii+1;
 end
 % end
 % 

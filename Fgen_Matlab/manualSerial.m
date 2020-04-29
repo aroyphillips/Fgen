@@ -8,7 +8,7 @@ SerialID = serial('COM4', 'Baudrate',9600);
 fopen(SerialID);
 
 N = 1000;
-tests = NaN(1,N);
+tests = NaN(2,N);
 tic
 for ii = 1:N
 flushinput(SerialID);
