@@ -154,7 +154,7 @@ boolean hasPulsed = false; // indicates whether pulse needs to be brought to res
 float dist;
 volatile float distCorrection;
 
-byte readyToReceive = 0;
+byte readyToReceive = 0x00;
 
 void setup() {
     pinMode(AOut, OUTPUT);
@@ -348,7 +348,10 @@ void outputVolts(){
     // check each possible shape output and modify output volt accordingly
     // Serial.println(readyToReceive);
     if (dist>170){
-      readyToReceive = '1';
+      readyToReceive = 0xFF;
+    }
+    else{
+      readyToReceive = 0x00;
     }
 
     // DIGITAL PULSE FLAG
@@ -1246,7 +1249,7 @@ void reset_distance(){
   hasStartedTrain = false;
   doneSpiking = false;
   hasGaussed = false;
-  readyToReceive = 0;
+  readyToReceive = 0x00;
   digPulseOn = false;
   hasDigPulsed = false;
 
