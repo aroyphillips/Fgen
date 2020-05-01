@@ -293,7 +293,7 @@ void outputVolts(){
     
     float currDist;
     currDist = analogRead(distPin)/VAL2DAC*100;
-    dist = currDist-distCorrection;
+    dist = currDist; //-distCorrection;
     //Serial.print("Distance: ");
     //Serial.println(dist);
     //Serial.println(dist> digDelay);
