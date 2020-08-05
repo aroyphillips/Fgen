@@ -44,20 +44,24 @@ const char* timePtr = &timeSym;
 
 // Digital Pulse params
 boolean isDigActive;
+float digDelay;
 float digStart;
 char* digParam;
 float digDuration;
 boolean isDigTime;
 boolean isDigDist;
 boolean digPulseOn = false; // tells whether to pulse or not
-boolean hasDigPulsed; // flag to mark start of pulse
-unsigned long digTime; // marks the start time of the pulse
+boolean hasDigPulsed; // flag to mark start of pulse after delay is considered
+boolean hasDigPassedStart; // flag to mark passing of start location
+unsigned long digTime; // marks the time of the pulse passing start location
+unsigned long digStartTime; // marks the time of pulse starting
 
 // Pulse params
 boolean isPulseActive;
 float pulseAmp;
 char* pulseParam;
 int pulseDuration;
+int pulseDelay;
 int pulseStart;
 float pulseEnd;
 boolean isPulseTime;
@@ -71,6 +75,7 @@ float trainAmp;
 char* trainParam;
 float trainDuration;
 char* spikeParam;
+float trainDelay;
 float trainStart;
 float trainWidth;
 float trainEnd;
@@ -311,14 +316,18 @@ void outputVolts(){
     // DIGITAL PULSE FLAG
 
     if(isDigTime){
-      if (isDigActive && dist> digStart && !hasDigPulsed){
+      if (isDigActive && dist> digStart && !hasDigPulsed && !hasDigPassedStart){
        //Serial.print("Turning dig pulse on, duration ");
        //Serial.println(digDuration);
-        digPulseOn = true;
         digTime = micros();
-        hasDigPulsed = true;
+        hasDigPassedStart = true;
       }
-      else if (isDigActive && ((currTime - digTime) >= (unsigned long)digDuration && hasDigPulsed)){
+      if (isDigActive && currTime-digTime>=digDelay && !hasDigPulsed && hasDigPassedStart){
+          digPulseOn = true;
+          digStartTime = micros();
+          hasDigPulsed = true;
+      }
+      else if (isDigActive && ((currTime - digStartTime) >= (unsigned long)digDuration && hasDigPulsed)){
         // Serial.println("dig pulse off");
         digPulseOn = false;
       }
@@ -327,11 +336,16 @@ void outputVolts(){
       }
     }
     else if (isDigDist){
-      if (isDigActive && dist> digStart && !hasDigPulsed){
+      if (isDigActive && dist> digStart && !hasDigPulsed && !hasDigPassedStart) {
        //Serial.print("Turning dig pulse on, duration ");
        //Serial.println(digDuration);
-        digPulseOn = true;
-        hasDigPulsed = true;
+         digTime=micros();
+         hasDigPassedStart = true;
+      }
+      if (isDigActive && currTime-digTime>=digDelay && !hasDigPulsed && hasDigPassedStart){
+          digStart = dist;
+          digPulseOn = true;
+          hasDigPulsed = true;
       }
       else if (isDigActive && (dist >= (digDuration+digStart)) && hasDigPulsed){
         //Serial.println("dig pulse off");
@@ -650,6 +664,9 @@ void parseDigitalData(char digit_str[]) {
   strtokIndx = strtok(NULL, ",");
   digDuration = atof(strtokIndx);
 
+  strtokIndx = strtok(NULL, ",");
+  digStart = atof(strtokIndx);
+
   //strcmp returns -15 if false, -12 if true
   if ((strcmp(digParam, timePtr))>-15){
      //Serial.println(" time");
@@ -702,6 +719,9 @@ void parsePulseData(char pulse_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   pulseDuration = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  pulseDelay = atof(strtokIndx);
 
   pulseEnd = pulseStart + pulseDuration;
 
@@ -764,6 +784,9 @@ void parseTrainData(char train_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   trainWidth = atof(strtokIndx);     // convert this part to a float
+
+  strtokIndx = strtok(NULL, ",");
+  trainDelay = atof(strtokIndx);     // convert this part to a float
 
   if ((strcmp(trainParam, timePtr))>-15){
        isTrainTime = true;
