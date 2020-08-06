@@ -66,7 +66,9 @@ int pulseStart;
 float pulseEnd;
 boolean isPulseTime;
 boolean isPulseDist;
-unsigned long pulseStartTime;
+boolean hasPulsePassedStart;
+unsigned long pulseTime; // signifies passing start position
+unsigned long pulseStartTime; // signifies the time the pulse starts (including the delay)
 
 // Pulse Train params
 
@@ -417,7 +419,7 @@ void outputVolts(){
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        pulseEnd = dist + pulseStart;
+        pulseEnd = dist + pulseDuration;
         //Serial.print("pulsing: ");
         //Serial.println(dist);
       }
@@ -434,7 +436,7 @@ void outputVolts(){
         currTime = micros();
         hasPulsePassedStart = true;
       }
-      if (isPulseActive && (currTime-pulseTime>=pulseDelay) && (currTime-pulseTime>=0) !hasPulsed && !hasPulsedThisLap && hasPulsePassedStart){
+      if (isPulseActive && (currTime-pulseTime>=pulseDelay) && (currTime-pulseTime>=0) && !hasPulsed && !hasPulsedThisLap && hasPulsePassedStart){
         pulseStartTime = micros();
         value = value + pulseAmp;
         hasPulsed = true;
@@ -964,6 +966,7 @@ void reset_distance(){
   hasSpiked = false;
   hasPulsed = false;
   hasPulsedThisLap = false;
+  hasPulsePassedStart = false;
   hasSpikedThisLap = false;
   hasStartedTrain = false;
   doneSpiking = false;
