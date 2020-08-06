@@ -365,7 +365,8 @@ void outputVolts(){
       }
     }
 
-    // Triangle Pulse (right now needs to be only activated on its own
+    // Triangle Pulse, cannot be activated with other analog outs
+
     if(isTriActive){
       if ((dist>triStart) && (dist<triPeak)){
         value = triUpSlope*(dist-triStart);
@@ -384,7 +385,7 @@ void outputVolts(){
       }
     }
 
-    // Gaussian
+    // Gaussian, cannot be activated with other analog outs
     else if(isGausActive){
       if (dist<=gausCenter && !hasGaussed){
 
@@ -407,11 +408,16 @@ void outputVolts(){
 
     // Pulse
     if(isPulseDist){
-      if (isPulseActive && (dist>pulseStart) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap){
-
+      if (isPulseActive && (dist>pulseStart) && (dist<pulseEnd) && !hasPulsed && !hasPulsedThisLap && !hasPulsePassedStart){
+        pulseTime = micros();
+        currTime = micros();
+        hasPulsePassedStart = true;
+      }
+      if (isPulseActive && (currTime-pulseTime)>=pulseDelay && currTime-pulseTime>=0 && hasPulsePassedStart && !hasPulsed && !hasPulsedThisLap){
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
+        pulseEnd = dist + pulseStart;
         //Serial.print("pulsing: ");
         //Serial.println(dist);
       }
@@ -423,15 +429,19 @@ void outputVolts(){
       }
     }
     else if(isPulseTime){
-     if (isPulseActive && (dist>pulseStart) && !hasPulsed && !hasPulsedThisLap){
-
+     if (isPulseActive && (dist>pulseStart) && !hasPulsed && !hasPulsedThisLap && !hasPulsePassedStart){
+        pulseTime = micros();
+        currTime = micros();
+        hasPulsePassedStart = true;
+      }
+      if (isPulseActive && (currTime-pulseTime>=pulseDelay) && (currTime-pulseTime>=0) !hasPulsed && !hasPulsedThisLap && hasPulsePassedStart){
         pulseStartTime = micros();
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
        //Serial.print("pulsing: ");
        //Serial.println(dist);
-      }
+       }
       else if (isPulseActive && ((currTime-pulseStartTime)>=(unsigned long)pulseDuration) && hasPulsed){
         //Serial.print("pulse down: ");
         //Serial.println(dist);
