@@ -147,7 +147,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      Serial.write(readyToReceive);
+      //Serial.write(readyToReceive);
     }
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
@@ -176,8 +176,8 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
 
         rc = Serial.read();
-        //delay(100);
-        //Serial.print(rc);
+        delay(100);
+        Serial.print(rc);
         if (rc == startMarker) {
           recvInProgress = true;
         }
@@ -303,7 +303,6 @@ void outputVolts(){
     //Serial.println(dist);
     //Serial.println(dist> digStart);
     unsigned long currTime = micros();
-
     // check each possible shape output and modify output volt accordingly
     // Serial.println(readyToReceive);
     if (dist>170){
@@ -317,12 +316,17 @@ void outputVolts(){
 
     if(isDigTime){
       if (isDigActive && dist> digStart && !hasDigPulsed && !hasDigPassedStart){
-       //Serial.print("Turning dig pulse on, duration ");
-       //Serial.println(digDuration);
         digTime = micros();
+        currTime = micros();
         hasDigPassedStart = true;
+        Serial.print("Passed Start time:");
+        Serial.println(digTime);
       }
-      if (isDigActive && currTime-digTime>=digDelay && !hasDigPulsed && hasDigPassedStart){
+      if (isDigActive && currTime-digTime>=digDelay && currTime-digTime>=0 && !hasDigPulsed && hasDigPassedStart){
+           Serial.print("Turning dig pulse on, duration ");
+          Serial.println(digDuration);
+          Serial.print("TIME: ");
+          Serial.println(currTime);
           digPulseOn = true;
           digStartTime = micros();
           hasDigPulsed = true;
@@ -340,9 +344,10 @@ void outputVolts(){
        //Serial.print("Turning dig pulse on, duration ");
        //Serial.println(digDuration);
          digTime=micros();
+         currTime=micros();
          hasDigPassedStart = true;
       }
-      if (isDigActive && currTime-digTime>=digDelay && !hasDigPulsed && hasDigPassedStart){
+      if (isDigActive && currTime-digTime>=digDelay && currTime-digTime>=0 && !hasDigPulsed && hasDigPassedStart){
           digStart = dist;
           digPulseOn = true;
           hasDigPulsed = true;
@@ -649,7 +654,6 @@ void noFlags() {
 void parseDigitalData(char digit_str[]) {
 
     // split the data into its parts
-
   char * strtokIndx; // this is used by strtok() as an index
 
   strtokIndx = strtok(digit_str, ","); // this continues where the previous call left off
@@ -665,7 +669,8 @@ void parseDigitalData(char digit_str[]) {
   digDuration = atof(strtokIndx);
 
   strtokIndx = strtok(NULL, ",");
-  digStart = atof(strtokIndx);
+  digDelay = atof(strtokIndx);
+  digDelay = digDelay * 1000; //convert to micros
 
   //strcmp returns -15 if false, -12 if true
   if ((strcmp(digParam, timePtr))>-15){
@@ -680,7 +685,7 @@ void parseDigitalData(char digit_str[]) {
      isDigDist = true;
   }
 
-  /*
+  
   Serial.println("DIGITAL PULSE PARAMETERS");
   Serial.print("Is Digital Pulse? ");
   Serial.print(isDigActive);
@@ -688,13 +693,15 @@ void parseDigitalData(char digit_str[]) {
   Serial.print(digDuration);
   Serial.print(" Digital Pulse Start:");
   Serial.print(digStart);
+  Serial.print(" Digital Delay:");
+  Serial.print(digDelay);
   Serial.print(" parameter:");
   Serial.print(digParam);
   Serial.print(" Time-based?");
   Serial.print(isDigTime);
   Serial.print( " Distance-based?");
   Serial.println(isDigDist);
-  */
+  
 }
 
 
@@ -722,6 +729,7 @@ void parsePulseData(char pulse_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   pulseDelay = atof(strtokIndx);
+  pulseDelay = pulseDelay *1000;
 
   pulseEnd = pulseStart + pulseDuration;
 
@@ -787,6 +795,7 @@ void parseTrainData(char train_str[]) {
 
   strtokIndx = strtok(NULL, ",");
   trainDelay = atof(strtokIndx);     // convert this part to a float
+  trainDelay = trainDelay*1000;
 
   if ((strcmp(trainParam, timePtr))>-15){
        isTrainTime = true;
@@ -952,6 +961,7 @@ void reset_distance(){
   readyToReceive = 0x00;
   digPulseOn = false;
   hasDigPulsed = false;
+  hasDigPassedStart = false;
 
   float distRead = analogRead(distPin)/VAL2DAC*100;
   // Adjust for distance offset, ensure distance read is after reset
