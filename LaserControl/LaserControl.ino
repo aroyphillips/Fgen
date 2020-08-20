@@ -31,17 +31,17 @@ float DACadjust = 4095/3.3; // dac output is val*3.3/4095.0
 // timing
 unsigned long startTime = 0; // time when start signal received
 unsigned long currTime = 0; // current time each loop
-unsigned long stopTime = 0;
+unsigned long stopTime = 0; // time when velocity is below STOP_VELO threshold for STOP_TIME milliseconds
 unsigned long t = 0;
 
 // read velocity
 int lastVelo = 0;
-bool isStopping = False; // True when animals velocity is below STOP_VELO threshold
+bool isStopping = false; // true when animals velocity is below STOP_VELO threshold
 
 
 // flags to mark begin and end
-bool begin_flag = False; // triggers output
-bool stop_flag = False; // marks the end of unattenuated sinusoid and the beginning of the damped sine
+bool begin_flag = false; // triggers output
+bool stop_flag = false; // marks the end of unattenuated sinusoid and the beginning of the damped sine
 
 void setup()
 {
@@ -53,7 +53,6 @@ void setup()
     analogReadResolution(12);
     attachInterrupt(digitalPinToInterrupt(startPin), begin_sine, RISING);
     Serial.begin(12000000); //Teensy ignores parameter and runs at 12MB/sec
-    analogWrite(AOut, 0);
 }
 
 
@@ -63,37 +62,37 @@ void loop() {
     int currVelo = analogRead(veloPin);
     unsigned long stoppingTime; // time when sine wave begins attenuating
 
-    t = currTime-sineTime;
+    t = currTime-startTime;
 
     if(begin_flag){
         // Active if the start signal given
-        digitalWrite(trigPin, HIGH)
-        analogWrite(sinePin, AMP_DAC*(sin(B*t)+1))
+        digitalWrite(trigPin, HIGH);
+        analogWrite(sinePin, AMP_DAC*(sin(B*t)+1));
 
-        if ((abs(tempVelo-currVelo) < STOP_VELO)){
+        if ((abs(lastVelo-currVelo) < STOP_VELO)){
             if (!isStopping){
-                isStopping = True;
+                isStopping = true;
                 stoppingTime = currTime;
             }
             else{
-                if ((currTime - stoppingTime) > STOP_TIME{
+                if ((currTime - stoppingTime) > STOP_TIME){
                     //animal is stopping, set stop_flag and clear other flags
-                    stop_flag = True;
-                    begin_flag = False;
+                    stop_flag = true;
+                    begin_flag = false;
                     stopTime = currTime;
 
-                    isStopping = False;
+                    isStopping = false;
                 }
             }
         }
     }
     else if(stop_flag){
         // animal is stopped, attenuate sine for ATTN_TIME ms
-        if (currTime-stopTime)<ATTN_TIME{
-            analogWrite(sinePin, (-1/ATTN_TIM)*(t+1)*AMP_DAC*(sin(B*t)+1)); // decrease sine output linearly to 0
+        if ((currTime-stopTime)<ATTN_TIME){
+            analogWrite(sinePin, (-1/ATTN_TIME)*(t+1)*AMP_DAC*(sin(B*t)+1)); // decrease sine output linearly to 0
         }
         else{
-            stop_flag=False;
+            stop_flag=false;
         }
     }
     else{
@@ -102,10 +101,10 @@ void loop() {
 
     }
 
-    lastVelo = tempVelo;
+    lastVelo = currVelo; // store velocity for previous loop
 }
 
 void begin_sine(){
-    begin_flag = True;
+    begin_flag = true;
     startTime = millis();
 }
