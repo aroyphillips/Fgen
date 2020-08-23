@@ -160,7 +160,7 @@ void loop()
      digitalWrite(startLaserPin, LOW);
   }
   
-  if (distance > 1800) {
+  if (distance > 150) {
      distance = 0;  // Wrap around
      digitalWrite(startLaserPin, HIGH);
      pulseTimer = millis();
