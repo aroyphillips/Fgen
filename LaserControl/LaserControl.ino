@@ -21,12 +21,12 @@
 #define VELO_THRESH 15 // maximum variation from stop: where each integer corresponds to 3.3/4096 mv
 #define STOP_TIME 1000 // millisecond threshold for animal to remain stopped to trigger stop behavior
 #define TIME_UNIT_VELO 10 // number of milliseconds between velocity readings to see if velocity is changing across this unit of time
-#define ATTN_TIME 2000.0 // millisecond time for sine output to ramp down
+#define ATTN_TIME 200.0 // millisecond time for sine output to ramp down
 
 #define PI 3.14159265359
 
 // initialize globals
-float B = 2*PI*FREQ/10e3; // 2pif * 1s/1000ms
+float B = 2*PI*FREQ/1000; // 2pif * 1s/1000ms
 float DACadjust = 4095/3.3; // dac output is val*3.3/4095.0
 float AMP_DAC = AMP * DACadjust; // converts to 1240, sice dac output is val*3.3/4095.0.
 
@@ -36,6 +36,9 @@ unsigned long currTime = 0; // current time each loop
 unsigned long stopTime = 0; // time when velocity is below STOP_VELO threshold for STOP_TIME milliseconds
 unsigned long lastVeloTime = TIME_UNIT_VELO+1; // time of last check velocity. set above threshold to 
 unsigned long t = 0; // time since start of sine
+unsigned long stoppingTime; // time when sine wave begins attenuating
+
+int stoppingTimeDiff = 0;
 
 // read velocity
 int lastVelo = 0;
@@ -52,7 +55,7 @@ void setup()
     pinMode(startPin, INPUT);
     pinMode(veloPin, INPUT);
     pinMode(sinePin, OUTPUT);
-    pinMode(trigPin, INPUT);
+    pinMode(trigPin, OUTPUT);
     analogWriteResolution(12);
     analogReadResolution(12);
     attachInterrupt(digitalPinToInterrupt(startPin), begin_sine, RISING);
@@ -63,14 +66,15 @@ void setup()
 
 void loop() {
     currTime=millis();
-    unsigned long stoppingTime; // time when sine wave begins attenuating
     t = currTime-startTime;
     // check velocity every 10 milliseconds
     currVelo = analogRead(veloPin);
     
     if(begin_flag){
+      
         Serial.println("SHOULD BE SINING");
         // Active if the start signal given
+        
         digitalWrite(trigPin, HIGH);
         int val;
         val =  AMP_DAC*(sin(B*t)+1);
@@ -79,17 +83,20 @@ void loop() {
         isVeloLow = (abs(currVelo-STOP_VELO) < VELO_THRESH);
         
         Serial.print("IS VELO LOW? "); Serial.print(isVeloLow); Serial.print(" DIFF IN VELO"); Serial.println(abs(currVelo-STOP_VELO));
-        Serial.print(" current velo"); Serial.print(currVelo); Serial.println( " ."); 
+        //Serial.print(" current velo"); Serial.print(currVelo); Serial.println( " ."); 
         
         if (isVeloLow){
             if (!isStopping){
                 isStopping = true;
                 stoppingTime = t;
                 Serial.print("STOPPING TIME"); Serial.println(stoppingTime);
+                stoppingTimeDiff = 0;
             }
             else{
-                Serial.print("How long since stopping?"); Serial.println(t-stoppingTime);
-                if ((t - stoppingTime) > STOP_TIME){
+                Serial.print("time "); Serial.print(t); Serial.print(" stopping time: "); Serial.println(stoppingTime);
+                stoppingTimeDiff = t - stoppingTime;
+                Serial.print("How long since stopping?"); Serial.println(stoppingTimeDiff);
+                if (stoppingTimeDiff > STOP_TIME){
                     //animal is stopped, set stop_flag and clear other flags
                     stop_flag = true;
                     begin_flag = false;
@@ -102,6 +109,7 @@ void loop() {
         else{
           Serial.println("MOVING");
           isStopping = false;
+          stop_flag = false;
         }
     }
     else if(stop_flag){
@@ -122,7 +130,9 @@ void loop() {
         }
     }
     else{
-        //Serial.println("DO NOTHING");
+        if (isStopping){
+          Serial.println("DO NOTHING");
+        }
         analogWrite(sinePin, 0);
         digitalWrite(trigPin, LOW);
         stopTime = 0; 
