@@ -1,5 +1,3 @@
-# Documentation for software and firmware developed for the Magee Lab in Houston
-
 # Sections:
 
 * [Overview](#overview)
