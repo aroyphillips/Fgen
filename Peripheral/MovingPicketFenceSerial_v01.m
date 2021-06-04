@@ -1,4 +1,4 @@
-%%% Script used to test peripheral visual stimuli
+ %%% Script used to test peripheral visual stimuli
 %%% Currently the design is to display n white rectangles that move
 %%% proportionally to the animals position
 %%% Then, a reward stimuli is overlaid for a period of time.
@@ -19,7 +19,7 @@ close all;
 clearvars;
 
 SerialPort='COM5';   %serial port
-TimeInterval=0.001;  %time interval (s) between each input.
+TimeInterval=0.01;  %time interval (s) between each input.
 
 %%Set up the serial port object
 s = serial(SerialPort,'BaudRate',9600);
@@ -71,14 +71,14 @@ t0 = tic;
 % lab parameters
 
 lapDistance = 1800; %cm
-numRects = 1;
+numRects = 6;
 fillScreenPercent = 10; % percent of width taken up by white space
 heightPercent = 20;
 rectVelo = 2;
 
 
 % Make a base Rect given the parameters
- 
+
 % scale the width as a pecent of total screen width
 rectWidth = (windowWidth/numRects)*fillScreenPercent/100;
 rectHeight = windowHeight*heightPercent/100;
@@ -105,7 +105,6 @@ yCenterMat = repmat(yCenter, numRects, 1);
 
 while ~KbCheck
     currentPosition = fscanf(s,'%g',4);
-    fprintf("Current position = %g\n", currentPosition);
     % Position of the square on this frame
     xpos = windowWidth - currentPosition/lapDistance * windowWidth;
     % Add this position to the screen center coordinate. This is the point
@@ -115,13 +114,13 @@ while ~KbCheck
     end
     
     % Center the rectangle on the centre of the screen
-    centeredRect = CenterRectOnPointd(baseRect, squareXpos, yCenterMat)';
+    centeredRect = CenterRectOnPointd(baseRect', squareXpos, yCenterMat);
     
     % ensure wrap around
     centeredRect(1,:)  = mod(centeredRect(1,:), windowWidth);
     centeredRect(3,:) = centeredRect(1,:) + rectWidth;
     % Draw the rect to the screen
-    Screen('FillRect', window, rectColor, centeredRect');
+    Screen('FillRect', window, rectColor, centeredRect);
     
     % draw the reward stimuli once
     if currentPosition>= rewardLocation
@@ -139,11 +138,11 @@ while ~KbCheck
 
     % Increment the time
     time = time + ifi;
-%     t1 = tic;
-%     if (t1-t0)>TimeInterval
-%         t0 = t1;
-    flushinput(s);
-%     end
+    t1 = tic;
+    if (t1-t0)>TimeInterval
+        t0 = t1;
+        flushinput(s);
+    end
 end
 
 % Clear the screen
