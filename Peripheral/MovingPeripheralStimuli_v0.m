@@ -71,7 +71,7 @@ t0 = tic;
 % lab parameters
 
 lapDistance = 1800; %cm
-numRects = 6;
+numRects = 1;
 fillScreenPercent = 10; % percent of width taken up by white space
 heightPercent = 20;
 rectVelo = 2;
@@ -114,13 +114,13 @@ while ~KbCheck
     end
     
     % Center the rectangle on the centre of the screen
-    centeredRect = CenterRectOnPointd(baseRect', squareXpos, yCenterMat);
+    centeredRect = CenterRectOnPointd(baseRect, squareXpos, yCenterMat)';
     
     % ensure wrap around
     centeredRect(1,:)  = mod(centeredRect(1,:), windowWidth);
     centeredRect(3,:) = centeredRect(1,:) + rectWidth;
     % Draw the rect to the screen
-    Screen('FillRect', window, rectColor, centeredRect);
+    Screen('FillRect', window, rectColor, centeredRect');
     
     % draw the reward stimuli once
     if currentPosition>= rewardLocation
