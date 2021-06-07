@@ -25,7 +25,7 @@ Firmware for the BpodRotaryEncoderModule.
 
 This is the most up to date and commented firmware for calculating the distance and velocity data from the Avago HEDM-55xx Rotary Encoder with 512 tics. Pinout can be found in DistanceModulePins.pdf
 
-![Distance Module Pins](DistanceModulePins.pdf)
+![Distance Module Pins](DistanceModulePins.png)
 
 ### TeensyEncoder201904.ino:
 
