@@ -25,6 +25,8 @@ Firmware for the BpodRotaryEncoderModule.
 
 This is the most up to date and commented firmware for calculating the distance and velocity data from the Avago HEDM-55xx Rotary Encoder with 512 tics. Pinout can be found in DistanceModulePins.pdf
 
+![Distance Module Pins](DistanceModulePins.pdf)
+
 ### TeensyEncoder201904.ino:
 
 Equivalent to TeensyEncoder20200904.ino but not commented fully. Made for 512 tics encoder.
@@ -179,6 +181,8 @@ The checkboxes allow the user to specify which stimuli are on at a given time. T
 Once the stimuli parameters are at the desired values, the user can press the Update button to send these parameters to the Teensy device. Any improper values will be rejected with a warning message and the parameters will not send until the user fixes the values and presses Update again. These parameters will then update after the next reset signal.
 
 The .ino firmware allows the Teensy to read incoming stream of characters from the GUI and generate the stimuli based on those values. To set up the current generator device please refer to the pin-out sheet in CurrentRampModulePins.pdf
+
+![Current Module Pins](CurrentRampModulePins.png)
 
 Versions currently available:
 
