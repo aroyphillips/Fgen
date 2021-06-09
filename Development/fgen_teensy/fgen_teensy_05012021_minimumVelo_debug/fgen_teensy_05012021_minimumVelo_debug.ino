@@ -212,7 +212,7 @@ void recvWithStartEndMarkers() {
   while (Serial.available() > 0 && newData == false) {
 
     rc = Serial.read();
-    delay(100);
+    delay(50);
     Serial.print(rc);
     if (rc == startMarker) {
       recvInProgress = true;
@@ -272,10 +272,14 @@ void recvWithStartEndMarkers() {
             // Receiving parameters based on flag
             if (isVelo) {
               if (rc == phraseEnd) {
+//                Serial.println("DONE REC VELO");
               }
               else if (rc != 'v') {
                 velo[ndx] = rc;
                 ndx++;
+//                Serial.print(rc);
+//                Serial.print(" becomes ");
+//                Serial.println(velo);
               }
             }
             if (isDig) {
@@ -284,6 +288,9 @@ void recvWithStartEndMarkers() {
               else if (rc != 'b') {
                 digit[ndx] = rc;
                 ndx++;
+//                Serial.print(rc);
+//                Serial.print(" becomes ");
+//                Serial.println(isDig);
               }
             }
             else if (isPulse) {
@@ -477,8 +484,8 @@ void outputVolts() {
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        //Serial.print("pulsing: ");
-        //Serial.println(dist);
+        Serial.print("pulsing: ");
+        Serial.println(dist);
       }
       else if (isPulseActive && (dist > pulseEnd) && hasPulsed) {
         //Serial.print("pulse down: ");
@@ -885,6 +892,7 @@ void outputVolts() {
 
 void clearBools() {
   // resets all reception flags so only receiving one at a time
+  isVelo = false;
   isPulse = false;
   isTrain = false;
   isTrain2 = false;
@@ -911,10 +919,10 @@ void parseVeloData(char velo_str[]) {
   isMinVeloActive = (*strtokIndx == '1');  // converts char* to a boolean
 
   strtokIndx = strtok(NULL, ",");
-  minVeloThresh = atoi(strtokIndx);     // get distance (mm)
+  minVeloThresh = atof(strtokIndx);     // get distance (mm)
 
   strtokIndx = strtok(NULL, ",");
-  minVeloTime = atol(strtokIndx); // get time (ms)
+  minVeloTime = atof(strtokIndx); // get time (ms)
   minVeloTime = minVeloTime * 1000; // convert to us
   
   Serial.println();
@@ -1013,7 +1021,7 @@ void parsePulseData(char pulse_str[]) {
     isPulseDist = true;
   }
 
-  /*
+  
     Serial.print("Is Pulse?");
     Serial.print(isPulseActive);
     Serial.print(" Pulse Amp:");
@@ -1026,7 +1034,7 @@ void parsePulseData(char pulse_str[]) {
     Serial.print(isPulseTime);
     Serial.print( " Distance-based?");
     Serial.println(isPulseDist);
-  */
+  
 }
 
 
