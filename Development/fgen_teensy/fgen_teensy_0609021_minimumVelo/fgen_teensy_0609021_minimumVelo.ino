@@ -203,7 +203,7 @@ void loop() {
   }
 //  Serial.println((char) readyToReceive);
 
-  if (digPulseOn) {
+  if (digPulseOn && (!isStopped || !isMinVeloActive)) {
     //Serial.println("Pulsing Digital");
     digitalWrite(digitalPin, HIGH);
   }
@@ -427,6 +427,7 @@ void outputVolts() {
         digPulseOn = false;
       }
       else if ((!isDigActive || (dist < digDelay)) && !hasDigPulsed) {
+        // Serial.println("ensures digital pulse is off when it's not active or the distance hasn't been reached");
         digPulseOn = false;
       }
     }
