@@ -4,8 +4,8 @@ function ProbabilisticReward2
 %%% Provides animal reward located at one of 2 user-specified locations, selected based on an input probability for the second location
 %%% Lap is reset in the middle of the trial to ensure physical distancing recording matches bpod recording
 %%% Softcoded end of trial is at 150cm. User-specified reward window cannot exceed this position
-%%% Manual Reward by clicking BNCIn 2 on the Bpod Console.
-%%% Written by Roy Phillips for Kunxun Fish Qian at Magee Lab
+%%% Manual Reward by clicking BNCIn 2 on the Bpod Console. Manual Reset 
+%%% Written by Roy Phillips for Christine Greenberger at Magee Lab 06/08/21
 
 global BpodSystem
 
@@ -36,22 +36,19 @@ if isempty(fieldnames(S))  % If chosen settings file was an empty struct, popula
     % Define default settings here as fields of S (i.e S.InitialDelay = 3.2)
     % Note: Any parameters in S.GUI will be shown in UI edit boxes. 
     % See ParameterGUI plugin documentation to show parameters as other UI types (listboxes, checkboxes, buttons, text)
-    %S.GUI.WaterValveAmt = 10; %s
     S.GUI.WaterValveAmt = 5; %  micro liters
-    S.GUI.lickWindow     = 20;  %s
     S.GUI.RewardLocation1 = 50; %cm PLUS actual location is 30cm, beam breaker is 20cm backward 
     S.GUI.RewardLocation2 = 110; %cm
     S.GUI.Location2Probability = 0; % = 1 for Location 2 only, = 0 for Location 1 only, and 0.5 for unweighted random
-    S.GUI.SearchForLap = 0;
-    S.GUI.SearchDistance = 170;
+    S.GUI.SearchForLap = 0; % boolean 1 or 0 to specify whether to change the reset signal search state location, 0 defaults to 160cm
+    S.GUI.SearchDistance = 160; % customize location to begin searching for reset signal, helps alleviate incongruencies between Bpod & Wavesurfer laps
 end
 
 
 %--- Initialize plots and start USB connections to any modules
  BpodParameterGUI('init', S); % Initialize parameter GUI plugin
  TotalRewardDisplay('init');
- RewardTime = GetValveTimes(S.GUI.WaterValveAmt, [1]); % valve open duration from calibration curve, 2-10 ul range
- LocationTime = (S.GUI.lickWindow);
+ RewardTime = GetValveTimes(S.GUI.WaterValveAmt, [2]); % valve open duration from calibration curve, 2-10 ul range
  BpodNotebook('init');
 
 %**** define events (Locations)
@@ -64,7 +61,7 @@ end
 LoadSerialMessages('RotaryEncoder1', {['#' 1], ['Z' 'E']});
 
 %**** define outputs
-    io.reward = {'ValveState', 2^0};            % Valve on port 2
+    io.reward = {'ValveState', 2^1};            % Valve on port 2
     io.markTrialStart = {'RotaryEncoder1', 1};  % Send message#1 (see above) to the encoder: byte 1, to indicate trial-start
     io.reset = {'RotaryEncoder1', 2, 'BNC1',1};           % reset encoder position and re-enable thresholds
     io.led1 = {'PWM3', 255};                    % LED on output port3
@@ -81,8 +78,7 @@ for currentTrial = 1:MaxTrials
     S = BpodParameterGUI('sync', S); % Sync parameters with BpodParameterGUI plugin
     
 %% Update the GUI data
-    RewardTime = GetValveTimes(S.GUI.WaterValveAmt, [1]); % valve open duration from calibration curve, 2-10 ul range
-    LocationTime = (S.GUI.lickWindow);
+    RewardTime = GetValveTimes(S.GUI.WaterValveAmt, [2]); % valve open duration from calibration curve, 2-10 ul range
     Location2Probability = (S.GUI.Location2Probability);
     RewardLocation1 = (S.GUI.RewardLocation1);
     RewardLocation2 = (S.GUI.RewardLocation2);
@@ -91,23 +87,21 @@ for currentTrial = 1:MaxTrials
       
     R.wrapPoint = 2160; %6 rotations
     
+    % SearchForLap provides a third location at which point the bpod
+    % waits for a reset signal to avoid any overlap in distances
     if SearchForLap==0
         Thresholds = round([RewardLocation1, RewardLocation2, 160]*Dist2Deg);
     elseif SearchForLap==1
         Thresholds = round([RewardLocation1, RewardLocation2,SearchDistance]*Dist2Deg);
     end
     
-    %Sort thresholds to ensure they are in the right order
-%     [sortedThresholds, idxThresholds] = sort(Thresholds);
-%     lapLocations = locations(idxThresholds);
-    
-%     R.thresholds = sortedThresholds;
     R.thresholds = Thresholds;
     R.startUSBStream('useTimer'); % Start streaming position data from the rotary encoder   
     
     % Generate a random # to determine trial type
     disp(strcat('Location 2 Probability: ', num2str(Location2Probability)))
 
+    % generate a random number and compare against the location probability
     hack = rand;
     if hack>=Location2Probability
     id.l=1;
@@ -117,18 +111,18 @@ for currentTrial = 1:MaxTrials
 
     disp(['Location goal: ' num2str(id.l)])
     disp(['Reward Position (cm)', num2str(Thresholds(id.l)/Dist2Deg)])
-%     locationStart = lapLocations(id.l);  % start of location window
     locationStart = locations(id.l);
     searchLocation = locations(3);
     %% State Machine 
+    
+    %%% --- Th
+    
     sma = NewStateMachine(); 
-
-
     
     if SearchForLap ==0
         sma = AddState(sma, 'Name', 'WaitForReset',... % waits for beambreak to be reached
             'Timer', 0,...
-            'StateChangeConditions', {'Port3Out', 'ResetPosition'},...
+            'StateChangeConditions', {'Port2Out', 'ResetPosition'},...
             'OutputActions', {}); 
     
     elseif SearchForLap == 1
@@ -138,7 +132,7 @@ for currentTrial = 1:MaxTrials
             'OutputActions', {}); 
         sma = AddState(sma, 'Name', 'WaitForReset',... % waits for beambreak to be reached
             'Timer', 0,...
-            'StateChangeConditions', {'Port3Out', 'ResetPosition'},...
+            'StateChangeConditions', {'Port2Out', 'ResetPosition'},...
             'OutputActions', {}); 
     end
         
@@ -156,7 +150,7 @@ for currentTrial = 1:MaxTrials
     sma = AddState(sma, 'Name', 'Reward', ... % if lick happens in window, give reward 
         'Timer', RewardTime,...
         'StateChangeConditions', {'Tup', 'BPOD_Lapover'},...
-        'OutputActions', {'ValveState', 2^0, 'WireState', id.l+4});   % turns output 3 to high, indicating release of water
+        'OutputActions', {'ValveState', 2^1, 'WireState', id.l+4});   % turns output 3 to high, indicating release of water
 
     sma = AddState(sma, 'Name', 'BPOD_Lapover',... % End lap after reward and wait for reset
         'Timer', 0.1,...
@@ -175,6 +169,7 @@ for currentTrial = 1:MaxTrials
         SaveBpodSessionData; % Saves the field BpodSystem.Data to the current data file
     end 
        %--- Typically a block of code here will update online plots using the newly updated BpodSystem.Data
+       %--- no longer used since this protocol does not do online plotting 
 %     if ~isnan(BpodSystem.Data.RawEvents.Trial{currentTrial}.States.Reward(1))
 %         TotalRewardDisplay('add', S.GUI.WaterValveAmt);
 %     end
