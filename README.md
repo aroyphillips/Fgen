@@ -1,11 +1,11 @@
 # Sections:
 
 * [Overview](#overview)
-* [Current Generator](#current-generator)
 * [Teensy Firmware](#teensy-firmware)
 * [Wavesurfer](#wavesurfer)
 * [Bpod Protocol](#bpod-protocol)
 * [Rig Programs and Data Analysis](#rig-programs-and-data-analysis)
+* [Current Generator](#current-generator)
 
 # Overview
 
