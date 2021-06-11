@@ -132,7 +132,7 @@ void setup() {
     pinMode(digitalPin, OUTPUT);
     analogWriteResolution(12);
     analogReadResolution(12);
-    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, FALLING);
+    attachInterrupt(digitalPinToInterrupt(rstPin), reset_distance, RISING);
     Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
     //Serial.println("<Teensy is ready>");
     analogWrite(AOut, 0);
@@ -293,7 +293,7 @@ void outputVolts(){
     
     float currDist;
     currDist = analogRead(distPin)/VAL2DAC*100;
-    dist = currDist-distCorrection;
+    dist = currDist; //-distCorrection;
     //Serial.print("Distance: ");
     //Serial.println(dist);
     //Serial.println(dist> digDelay);

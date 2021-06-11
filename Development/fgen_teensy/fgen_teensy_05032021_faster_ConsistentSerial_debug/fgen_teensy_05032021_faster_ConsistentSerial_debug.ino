@@ -142,7 +142,7 @@ void loop() {
     recvWithStartEndMarkers();
     outputVolts();
     if (Serial.availableForWrite()>0){
-      Serial.write(readyToReceive);
+      //Serial.write(readyToReceive);
     }
     //Serial.println(readyToReceive);
     //analogWrite(AOut,3*VAL2DAC);
@@ -171,8 +171,8 @@ void recvWithStartEndMarkers() {
     while (Serial.available() > 0 && newData == false) {
         
         rc = Serial.read();
-        //delay(100);
-        //Serial.print(rc);
+        delay(50);
+        Serial.print(rc);
         if (rc == startMarker) {
           recvInProgress = true;
         }
@@ -393,8 +393,8 @@ void outputVolts(){
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        //Serial.print("pulsing: ");
-        //Serial.println(dist);
+        Serial.print("pulsing: ");
+        Serial.println(dist);
       }
       else if (isPulseActive && (dist>pulseEnd) && hasPulsed){
         //Serial.print("pulse down: ");
@@ -716,7 +716,7 @@ void parsePulseData(char pulse_str[]) {
        isPulseDist = true;
   }
   
-  /*
+  
   Serial.print("Is Pulse?");
   Serial.print(isPulseActive);
   Serial.print(" Pulse Amp:");
@@ -729,7 +729,7 @@ void parsePulseData(char pulse_str[]) {
   Serial.print(isPulseTime);
   Serial.print( " Distance-based?");
   Serial.println(isPulseDist);
-  */
+  
 }
 
 
@@ -791,7 +791,7 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  /*
+  
   Serial.println("TRAIN");
   Serial.print("Is Train?");
   Serial.print(isTrainActive);
@@ -817,7 +817,7 @@ void parseTrainData(char train_str[]) {
   Serial.print(isSpikeTime);
   Serial.print( " Distance-based?");
   Serial.println(isSpikeDist);
-  */
+  
   
 }
 

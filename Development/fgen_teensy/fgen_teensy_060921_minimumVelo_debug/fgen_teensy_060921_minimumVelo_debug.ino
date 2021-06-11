@@ -1,3 +1,19 @@
+//  Firmware for Current Generator: Version 1.2 - does not output under a velocity threshold
+//  Use with Matlab Controllable_Fgen_v30_Stopping
+//
+//  Developed for Christine Grienberger at Magee Lab
+//  Generates voltage for headstage amplifier for customized current injection
+//  For development and debugging there are several Serial.print statements that can be uncommented to ensure that reception or states are reached successfully
+//
+//  Distance In - A21
+//  Reset In - Pin 19
+//  Analog Voltage Out - A22
+//  Digital Out - A21
+//
+// A. Roy Phillips (aroyphillips@gmail.com)
+// HHMI
+// NRI
+
 #include <SPI.h>
 
 
@@ -16,13 +32,13 @@ float VAL2DAC = 4095 / 3.3; // Volt = val*3.3/4095 -->
 
 // registers to store incoming data
 const byte numChars = 32;
-char digit[12];
-char pulse[17];
-char train[27];
-char train2[27];
-char gaus[18];
-char tri[18];
-char velo[10];
+char digit[13];
+char pulse[18];
+char train[28];
+char train2[28];
+char gaus[19];
+char tri[19];
+char velo[11];
 
 
 // booleans to guide reception of serial data
@@ -164,7 +180,7 @@ boolean hasPulsed = false; // indicates whether pulse needs to be brought to res
 float dist;
 volatile float distCorrection;
 
-byte readyToReceive = 0;
+byte readyToReceive = 0x00;
 
 void setup() {
   pinMode(AOut, OUTPUT);
@@ -173,7 +189,7 @@ void setup() {
   pinMode(digitalPin, OUTPUT);
   analogWriteResolution(12);
   analogReadResolution(12);
-  attachInterrupt(rstPin, reset_distance, RISING);
+  attachInterrupt(rstPin, reset_distance, FALLING);
   Serial.begin(9600); //Teensy ignores parameter and runs at 12MB/sec
   //Serial.println("<Teensy is ready>");
   analogWrite(AOut, 0);
@@ -182,13 +198,13 @@ void setup() {
 void loop() {
   recvWithStartEndMarkers();
   outputVolts();
-  //if (Serial.availableForWrite()>0){
-  //Serial.write((byte) readyToReceive);
-  //}
+  if (Serial.availableForWrite()>0){
+//  Serial.write((byte) readyToReceive); // comment out during debugging
+  }
 //  Serial.println((char) readyToReceive);
-  //analogWrite(AOut,3*VAL2DAC);
-  if (digPulseOn) {
-    //Serial.println("Pulsing Digital");
+
+  if (digPulseOn && (!isStopped || !isMinVeloActive)) {
+    Serial.println("Pulsing Digital");
     digitalWrite(digitalPin, HIGH);
   }
   else {
@@ -277,32 +293,36 @@ void recvWithStartEndMarkers() {
               else if (rc != 'v') {
                 velo[ndx] = rc;
                 ndx++;
-//                Serial.print(rc);
-//                Serial.print(" becomes ");
-//                Serial.println(velo);
               }
             }
             if (isDig) {
               if (rc == phraseEnd) {
+                Serial.print("dPULSE STR AFTER pulse");
+                Serial.println(digit);
               }
               else if (rc != 'b') {
                 digit[ndx] = rc;
-                ndx++;
-//                Serial.print(rc);
-//                Serial.print(" becomes ");
-//                Serial.println(isDig);
+                ndx++; 
               }
             }
             else if (isPulse) {
               if (rc == phraseEnd) {
+//                Serial.print("PULSE STR AFTER pulse");
+//                Serial.println(pulse);
+                Serial.print("dPULSE STR AFTER Apulse");
+                Serial.println(digit);
               }
               else if (rc != 'p') {
+//                Serial.println(); Serial.print("receiving pulse char:"); Serial.println(rc);
                 pulse[ndx] = rc;
                 ndx++;
               }
             }
             else if (isTrain) {
               if (rc == phraseEnd) {
+//                Serial.print("PULSE STR AFTER TRAIN:"); Serial.println(pulse);
+                Serial.print("dPULSE STR AFTER train");
+                Serial.println(digit);
               }
               else if (rc != 't') {
                 train[ndx] = rc;
@@ -311,6 +331,7 @@ void recvWithStartEndMarkers() {
             }
             else if (isTrain2) {
               if (rc == phraseEnd) {
+                
               }
               else if (rc != 'a') {
                 train2[ndx] = rc;
@@ -319,6 +340,9 @@ void recvWithStartEndMarkers() {
             }
             else if (isGaus) {
               if (rc == phraseEnd) {
+//                Serial.print("PULSE STR AFTER GAUS:"); Serial.println(pulse);
+                Serial.print("dPULSE STR AFTER gaus");
+                Serial.println(digit);
               }
               else if (rc != 'g') {
                 gaus[ndx] = rc;
@@ -327,8 +351,15 @@ void recvWithStartEndMarkers() {
             }
             else if (isTri) {
               if (rc == phraseEnd) {
+//                Serial.print("PULSE STR AFTER TRI:"); Serial.println(pulse);
+//                Serial.print("TRI STR"); Serial.println(tri);
+                Serial.print("dPULSE STR AFTER tri");
+                Serial.println(digit);
               }
               else if (rc != '^') {
+//                Serial.println(); Serial.println(tri);
+//                Serial.print("PULSE");
+//                 Serial.println(pulse);
                 tri[ndx] = rc;
                 ndx++;
               }
@@ -372,8 +403,9 @@ void outputVolts() {
   float currDist;
   currDist = analogRead(distPin) / VAL2DAC * 100;
   dist = currDist - distCorrection;
-  //Serial.print("Distance: ");
-  //Serial.println(dist);
+//  Serial.print("True Distance: ");
+//  Serial.print(currDist); Serial.print(" corrected dist :");
+//  Serial.println(dist);
   //Serial.println(dist> digDelay);
   unsigned long currTime = micros();
   if (isMinVeloActive) {
@@ -391,13 +423,17 @@ void outputVolts() {
 
   // check each possible shape output and modify output volt accordingly
   // Serial.println(readyToReceive);
-  if (dist > 170) {
-    readyToReceive = '1';
+  if (dist>170){
+    readyToReceive = 0xFF; // hex code for 0b 1111 1111
+    }
+  else{
+    readyToReceive = 0x00;
   }
 
   // output no valtage is the animal is stopped when the check is active
   if (isStopped && isMinVeloActive) {
     analogWrite(AOut, 0);
+    Serial.println("STOPPED");
   }
   else {
     // DIGITAL PULSE FLAG
@@ -414,6 +450,7 @@ void outputVolts() {
         digPulseOn = false;
       }
       else if ((!isDigActive || (dist < digDelay)) && !hasDigPulsed) {
+        // Serial.println("ensures digital pulse is off when it's not active or the distance hasn't been reached");
         digPulseOn = false;
       }
     }
@@ -501,12 +538,12 @@ void outputVolts() {
         value = value + pulseAmp;
         hasPulsed = true;
         hasPulsedThisLap = true;
-        //Serial.print("pulsing: ");
-        //Serial.println(dist);
+        Serial.print("pulsing: ");
+        Serial.println(dist);
       }
       else if (isPulseActive && ((currTime - pulseStartTime) >= (unsigned long)pulseDuration) && hasPulsed) {
-        //Serial.print("pulse down: ");
-        //Serial.println(dist);
+        Serial.print("pulse down: ");
+        Serial.println(dist);
         value = value - pulseAmp;
         hasPulsed = false;
       }
@@ -913,8 +950,8 @@ void parseVeloData(char velo_str[]) {
 
   // split the data into its parts
   char * strtokIndx; // this is used by strtok() as an index
-  Serial.println();
-  Serial.println(velo_str);
+//  Serial.println();
+//  Serial.println(velo_str);
   strtokIndx = strtok(velo_str, ","); // this continues where the previous call left off
   isMinVeloActive = (*strtokIndx == '1');  // converts char* to a boolean
 
@@ -933,14 +970,15 @@ void parseVeloData(char velo_str[]) {
   Serial.print(minVeloThresh);
   Serial.print(" QueryTime:");
   Serial.println(minVeloTime);
-
+  
 }
 
 
 void parseDigitalData(char digit_str[]) {
 
   // split the data into its parts
-
+  Serial.println();
+  Serial.println(digit_str);
   char * strtokIndx; // this is used by strtok() as an index
 
   strtokIndx = strtok(digit_str, ","); // this continues where the previous call left off
@@ -989,7 +1027,7 @@ void parseDigitalData(char digit_str[]) {
 void parsePulseData(char pulse_str[]) {
 
   // split the data into its parts
-
+  Serial.println(pulse_str);
   char * strtokIndx; // this is used by strtok() as an index
 
   strtokIndx = strtok(pulse_str, ","); // this continues where the previous call left off
@@ -1096,7 +1134,7 @@ void parseTrainData(char train_str[]) {
   ptStart = trainDelay;
   hasSpiked = false;
 
-  /*
+  
     Serial.println("TRAIN");
     Serial.print("Is Train?");
     Serial.print(isTrainActive);
@@ -1122,7 +1160,7 @@ void parseTrainData(char train_str[]) {
     Serial.print(isSpikeTime);
     Serial.print( " Distance-based?");
     Serial.println(isSpikeDist);
-  */
+  
 
 }
 
@@ -1320,7 +1358,7 @@ void reset_distance() {
   hasStartedTrain = false;
   doneSpiking = false;
   hasGaussed = false;
-  readyToReceive = 0;
+  readyToReceive = 0x00;
   digPulseOn = false;
   hasDigPulsed = false;
 
