@@ -24,7 +24,7 @@ Serial.println(distance);
 right before the analogWrite command, and that no other Serial print statements exist.
 
 
-Then, ensure that Psychtoolbox (http://psychtoolbox.org/) is installed and on the path. A simple way to test this is to type out one of the existing demos in the command window. I like to use MovingSquareDemo which displays a red square oscillating on the screen. (Note: running this demo before every trial also ensures that Psychtoolbox can access the screen, which was finnicky on my laptop. To fix the screen issue, I would either rerun the MovingSquareDemo or restart my computer. I was unable to access the screen while Screen Recording, so further work is needed with an experimental setup to ensure reliable acces to the display screen.)
+Then, ensure that Psychtoolbox (http://psychtoolbox.org/) is installed and on the path. A simple way to test this is to type out one of the existing demos in the command window. I like to use ```MovingSquareDemo``` which displays a red square oscillating on the screen. (Note: running this demo before every trial also ensures that Psychtoolbox can access the screen, which was finnicky on my laptop. To fix the screen issue, I would either rerun the MovingSquareDemo or restart my computer. I was unable to access the screen while Screen Recording, so further work is needed with an experimental setup to ensure reliable acces to the display screen.)
 
 With the Teensy accurately printing distances to Matlab and PsychToolBox accessing the screen, the GUI is ready for use.
 
