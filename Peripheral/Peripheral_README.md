@@ -32,7 +32,7 @@ With the Teensy accurately printing distances to Matlab and PsychToolBox accessi
 
 The UI Figure that shows up looks has two panels, including tabs for different stimuli.
 
-[Peripheral_GUI](Peripheral_GUI.png)
+[Peripheral_GUI](peripheral_GUI.png)
 
 The tabs allow the user to specify properties of the rectangles. Namely, the number of rectangles (N), their total width (W) as a percentage of the screen, and the height (H) as a percent of the screen. At any given moment there will be N number of rectangles, which in total take up W percent of the screen width, and take up H% of the screen height. Currently, the rectangles will always be vertically centered and move laterally as the animal moves. These rectangles are evenly spaced apart, but each N group of rectangles may have a bigger horizontal gap. The user may also select the color of these rectangles, and the options are White, Gray, Green, Blue, or Red, but any RGB array can work in the actual code portion that calls the rectangles.
 
