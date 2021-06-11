@@ -58,7 +58,6 @@ if isempty(fieldnames(S))  % If chosen settings file was an empty struct, popula
     S.GUI.BlockMin =12;
     S.GUI.BlockMax =18;
     S.GUI.lickWindow     = 20;  %s
-    S.GUI.Location2Probability = 1; % = 1 for Location 2 only, = 0 for Location 1 only, and 0.5 for random
     S.GUI.OperantProbability = 0; 
 end
 
@@ -114,14 +113,14 @@ Trial_No = 1;
 for block = 1:MaxBlocks
     if mod(block,2)==1    
         % Location1
-        S.GUI.Location2Probability = 0;
+        Location2Probability = 0;
         WireState = bin2dec('001'); % all wire outs low
         locationStart = locations(5); % first 4 rotary_encoder positions are reserved for 
         locationEnd = locations(6);
 %         soundid = soundouts{1};    % BNC2 High to generate tone    
     else
         % Location2
-        S.GUI.Location2Probability = 1; 
+        Location2Probability = 1; 
         WireState = bin2dec('011'); % flip Wire2Out High to show wavesurfer that reward is in location2
         locationStart = locations(7);
         locationEnd = locations(8);
@@ -141,7 +140,6 @@ for block = 1:MaxBlocks
         %% Update the GUI data
         RewardTime = GetValveTimes(S.GUI.WaterValveAmt, [1]); % valve open duration from calibration curve, 2-10 ul range
         LocationTime = (S.GUI.lickWindow);
-        Location2Probability = (S.GUI.Location2Probability);
         OperantProbability = (S.GUI.OperantProbability);
 
          % Generate a random # to determine trial type
