@@ -1,43 +1,84 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2580
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
-\margl1440\margr1440\vieww17700\viewh10060\viewkind0
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+# Bpod Protocol
 
-\f0\fs24 \cf2 This directory contains BpodProtocol used to govern the behavioral cues and reward delivery. The Bpod device is useful for the delivery of precisely timed amounts of liquid reward, and maintains an online environment to keep track of position. However, its plotting features are limited as is the accuracy of its velocity measurement, so these protocol are paired with recordings using wave surfer protocol (see ~./ws/+examples for wave surfer protocol).\
-\
-The core logic of BpodProtocol is the State machine. These states include conditions that end the state and directions for which state to transition next. All possible input and output events are listed in the settings icon in the Bpod GUI. \
-\
-For further reference on creating Bpod Protocol, review the Bpod wiki https://sites.google.com/site/bpoddocumentation/\
-\
-A note on one event state notation that appears in the sample protocol not mentioned on the wiki site is the use of binary to specify the output signal.\
-\
-Any of the outputs may be multiplexed to have 2^N different signals, where N is the number of ports. For example, a watervalve may have 3 ports, as does the WireOut signal. To encode individual output, add 2^i for all i ports that you want to turn on, indexing from 0 up to N-1. \
-\
-To output only on WireOut1, the event would be: \{\'91WireState, 2^0\} or equivalently, \{\'91WireState, 1\}. To output on both WireOut1 and WireOut3, the event would be \{\'91Wirestate\'92, 2^0+2^2\}, equivalently \{\'91WireState\'92, 5\}. The function bin2dec may be helpful as one can provide a string representing the WireState and it will output the equivalent decimal form. So, output on both WireOut1 and WireOut2 would be \{\'91WireState\'92,  bin2dec(\'92011\'92)\}.\
-\
-An overview of the files is below:\
-\
-The recommended protocol illustrate how to set up the state machine, set the RotaryEncoder parameters and change the thresholds on a trial by trial basis. Additionally, for the protocol where the exact distance is important, ProbabilisticReward establishes a WaitForReset state to begin the state machine, ensuring that each trial is synched exactly with the belt.\
-\
-Recommended protocol to review:\
-\
-ProbabilisticReward2: **Recommended protocol to review and modify for new users. This protocol specifies reward at one of two locations, user can change the reward each lap. Parameters: WaterValveAmt (\'b5L), RewardLocation1 (cm), RewardLocation2 (cm), Location2Probability (0 to 1), SearchForLap (0 or 1), SearchDistance (cm). Setting SearchForLap to 1 allows the user to change the SearchDistance location at which the Bpod waits ends the trial and searches for the reset signal to start a new lap; only need to change this if lap lengths are not 180cm.\
-\
-RandomAcclimation: Designed for a blank belt acclimation where reward is randomly given every 100-260cm that the animal runs, so that the expected reward location is every 180cm. User has control of the range about and expected value. Parameters: WaterValveAmt (\'b5L), RewardCenter (cm), RewardRange (cm). RewardCenter and RewardRange specify  the center and range of the uniform distribution from which the reward location is chosen, updated each lap. This protocol is useful to train animals that already run to lick.\
-\
-RewardDistanceTraining: Fully controllable release of water for training. Supplies reward at given distance and immediately starts a new lap with the user input RewardDistance as the new target distance. The lap lengths change depending on the user input distance, so it is useful to train the mice to run. User Parameters: WaterValveAmt (\'b5L), RewardDistance (cm)\
-\
-\
-Older protocols (may not need be needed anymore).\
-\
-FlexibleRewardFish: allows the user to change the location on a trial by trial basis. To use this protocol to vary the reward location each lap, simply change the location of RewardLocation1. Additional features include the ability to randomly place the reward at one of two locations. To include a second reward location, change the Location2Probability value to a non-zero number between 0 and 1, and set the RewardLocation2. The parameter WaterValveAmt allows the user to control the microliter amount of water provided. Includes legacy code that uses the wavePlayer module to play one of three sounds and flash lights, but these features are no longer used for this protocol.\
-\
-TwoTriggerProtocol: Generates two output digital pulses which can be used to cue stimuli in wavesurfer or other stimuli control software if not using the current generator module. Parameters: WaterValveAmt (\'b5L), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). Lap length cannot exceed 179.\
-\
-TwoTriggerProtocol_TwoBeambreaks: Same as TwoTriggerProtocol but made for a belt with two beambreaks to physically mark the end and the beginning of a lap. This protocol was designed to combat the gradual change in Bpod distance calculations over the course of hundreds of laps. Parameters: WaterValveAmt (\'b5L), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). \
-\
-\
-\
-}
+This directory contains BpodProtocol used to govern the behavioral cues and reward delivery. The Bpod device is useful for the delivery of precisely timed amounts of liquid reward, and maintains an online environment to keep track of position. However, its plotting features are limited as is the accuracy of its velocity measurement, so these protocol are paired with recordings using wavesurfer protocol.
+
+The core logic of BpodProtocol is the State machine. These states include conditions that end the state and directions for which state to transition next. All possible input and output events are listed in the settings icon in the Bpod GUI. 
+
+For further reference on creating Bpod Protocol, review the Bpod wiki https://sites.google.com/site/bpoddocumentation/
+
+ #### Binary State Notation 
+
+A note on one event state notation that appears in the sample protocol not mentioned on the wiki site is the use of binary to specify the output signal:
+
+Any of the outputs may be multiplexed to have 2^N different signals, where N is the number of ports. For example, a watervalve may have 3 ports, as does the WireOut signal. To encode individual output, add 2^i for all i ports that you want to turn on, indexing from 0 up to N-1. 
+
+To output only on WireOut1, the event would be: {‘WireState, 2^0} or equivalently, {‘WireState, 1}. To output on both WireOut1 and WireOut3, the event would be {‘Wirestate’, 2^0+2^2}, equivalently {‘WireState’, 5}. The function bin2dec may be helpful as one can provide a string representing the WireState and it will output the equivalent decimal form. So, output on both WireOut1 and WireOut2 would be {‘WireState’,  bin2dec(’011’)}.
+
+<hr/>
+An overview of the files is below:
+
+The recommended protocol illustrate how to set up the state machine, set the RotaryEncoder parameters and change the thresholds on a trial by trial basis. Additionally, for the protocol where the exact distance is important, ProbabilisticReward establishes a WaitForReset state to begin the state machine, ensuring that each trial is synched exactly with the belt.
+
+File overview:
+
+### ProtocolTemplate.m:
+Provides the commands and basic state machine logic needed to interface with the Bpod and develop further protocol.
+
+Recommended protocol to review:
+
+### ProbabilisticReward2.m
+** Recommended protocol to review for new users. 
+This protocol specifies reward at one of two locations, user can change the reward each lap. Parameters: WaterValveAmt (µL), RewardLocation1 (cm), RewardLocation2 (cm), Location2Probability (0 to 1), SearchForLap (0 or 1), SearchDistance (cm). Setting SearchForLap to 1 allows the user to change the SearchDistance location at which the Bpod waits ends the trial and searches for the reset signal to start a new lap; only need to change this if lap lengths are not 180cm.
+
+### RandomAcclimation,m:
+Designed for a blank belt acclimation where reward is randomly given every 100-260cm that the animal runs, so that the expected reward location is every 180cm. User has control of the range about and expected value. Parameters: WaterValveAmt (µL), RewardCenter (cm), RewardRange (cm). RewardCenter and RewardRange specify  the center and range of the uniform distribution from which the reward location is chosen, updated each lap. This protocol is useful to train animals that already run to lick.
+
+### RewardDistanceTraining.m:
+Fully controllable release of water for training. Supplies reward at given distance and immediately starts a new lap with the user input RewardDistance as the new target distance. The lap lengths change depending on the user input distance, so it is useful to train the mice to run. User Parameters: WaterValveAmt (µL), RewardDistance (cm)
+
+### BlockedRandom_noSound.m:
+A simplified version of the BlockedRandom protocol used by SV. Alternates reward location for a randomized block length, specified by the user. Parameters: WaterValveAmt (µL),  BlockMin, BlockMax, lickWindow (s), OperantProbability. BlockMin and BlockMax specify the minimum and maximum number of trials at the same reward location, but the exact number of trials per block is randomly generated each block. OperantProbability specifies the probability that any specific trial requires the animal to lick to receive a reward or not, and if the animal is required to lick then it has lickWindow seconds to lick while it's still in the hardcoded reward location zone.
+
+<hr/>
+
+The following protocol may also be helpful to review, and are grouped together since they are various editions of the same idea: operant reward and user specified reward location.
+
+### OperantFixedReward.m
+** Recommended protocol to review for new users. 
+Animal receives the reward if and only if it licks anywhere in the specified reward zone. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationDuration (cm). 
+
+### OperantFixedRewardTime.m
+** Recommended protocol to review for new users. 
+Animal receives the reward if and only if it licks anywhere in the specified reward zone in the give time. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationEnd (cm), RewardLocationDurationT (s). Note: a RewardLocationEnd is specified to ensure the Bpod doesn't get stuck waiting for a lick if the duration is very long. 
+
+### OptionalOperantFixedReward.m
+
+Identical to OperantFixedReward.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.
+
+### OptionalOperantFixedRewardTime.m
+
+Identical to OperantFixedRewardTime.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.
+
+
+### OptionalOperantFixedRewardOptionalTime.m
+
+Identical to OptionalOperantFixedRewardTime.m with the additional user parameter IsTimerOn, allowing the user to toggle whether a given trial requires the animal to lick in the specified time or not. This protocol contains all the features of the other operant protocols in this section, and as a result the parameter GUI may be confusing at first.
+
+
+<hr/>
+
+
+Older protocols (may not need be needed anymore).
+
+### FlexibleRewardFish.m: 
+allows the user to change the location on a trial by trial basis. To use this protocol to vary the reward location each lap, simply change the location of RewardLocation1. Additional features include the ability to randomly place the reward at one of two locations. To include a second reward location, change the Location2Probability value to a non-zero number between 0 and 1, and set the RewardLocation2. The parameter WaterValveAmt allows the user to control the microliter amount of water provided. Includes legacy code that uses the wavePlayer module to play one of three sounds and flash lights, but these features are no longer used for this protocol.
+
+### TwoTriggerProtocol.m: 
+Generates two output digital pulses which can be used to cue stimuli in wavesurfer or other stimuli control software if not using the current generator module. Parameters: WaterValveAmt (µL), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). Lap length cannot exceed 179.
+
+### TwoTriggerProtocol_TwoBeambreaks.m: 
+Same as TwoTriggerProtocol but made for a belt with two beambreaks to physically mark the end and the beginning of a lap. This protocol was designed to combat the gradual change in Bpod distance calculations over the course of hundreds of laps. Parameters: WaterValveAmt (µL), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). 
+
+#### Development Notes:
+
+Bpod Protocol are fairly straightforward once you get a handle on state machine logic and binary multiplexing. Additional modules like WavePlayer require additional knowledge of device specific methods. One challenge that may arise is making sure the ports for reset, lick, and water release match the hardware configuration. Usually Bpod will give a warning, but sometimes it may not say anything so double check on all the ports and wirestates to ensure they match the needs of the system configuration.
