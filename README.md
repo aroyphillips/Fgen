@@ -20,7 +20,7 @@ Directory firmware used in the Teensy devices. For setup of the Teensy device, r
 #### Development notes:
 The key challenge in developing the distance module firmware was ensuring that the voltage output accurately reflects the distance and velocity signals and match the Bpod as close as possible. The key equation used is (circumference / tick) = 4.00 in. * 25.4 mm/in. * pi / 512 ticks  = 0.6234097922 mm/tick. The teensy then receives the two rotary encoder tick signals and stores time and distance value per tick to output the distance and velocity. This device needs to be powered with the right amount of current (300-500mA) or it will not run correctly. The power signal from the Sanworks Rotary Encoder is sufficient, and adding another power input without cutting the voltage pads on the hardware could lead to overloading the circuit.
 
-File Description:
+File Overview:
 
 ### RotaryEncoderModule.ino:
 From Sanworks: https://github.com/sanworks/Bpod_RotaryEncoder_Firmware
@@ -56,7 +56,7 @@ A sine wave has been demonstrated to be more effective for that control, so this
 
 These user codes allow for online analysis of the NI MAX DAQ signals, including stimulation, recording, and plotting. They were made during the early stages of the development two target paradigm, and as a result include many features not used for general paradigms.
 
-Installation instructions and documentation for wavesurfer can be found at https://wavesurfer.janelia.org/ 
+Installation instructions and documentation for wavesurfer can be found at https://wavesurfer.janelia.org/ . Highly recommend to read through these documentation before and while writing any new code.
 
 Remember to save all figures before closing waversurfer!!!
 
@@ -108,6 +108,10 @@ Converts input velocity to red green and blue by first scaling the velocity up t
 
 This protocol was developed before TreadMillProtocol.m and autosaves every lap instead of just at the end, causing it to get slower and slower between laps as the figure gets more complicated. Does not plot the two blue line targets used during the blocked protocol, instead counts correct licks as licks with 10cm of the reward release.
 
+#### Development notes:
+Modifying the user code requires first to know all the channels used by DAQ board. Then modifying dataAvailable() and accessing the data as described is sufficient to perform online analysis. **Future work:** Develop a more general and simplified wavesurfer user code that only plots what is needed and no longer designed specifically for the BlockedRandom Bpod code.
+
+
 # Bpod Protocol
 
 This directory contains BpodProtocol used to govern the behavioral cues and reward delivery. The Bpod device is useful for the delivery of precisely timed amounts of liquid reward, and maintains an online environment to keep track of position. However, its plotting features are limited as is the accuracy of its velocity measurement, so these protocol are paired with recordings using wavesurfer protocol.
@@ -129,10 +133,15 @@ An overview of the files is below:
 
 The recommended protocol illustrate how to set up the state machine, set the RotaryEncoder parameters and change the thresholds on a trial by trial basis. Additionally, for the protocol where the exact distance is important, ProbabilisticReward establishes a WaitForReset state to begin the state machine, ensuring that each trial is synched exactly with the belt.
 
+File overview:
+
+### ProtocolTemplate.m:
+Provides the commands and basic state machine logic needed to interface with the Bpod and develop further protocol.
+
 Recommended protocol to review:
 
 ### ProbabilisticReward2.m
-** Recommended protocol to review and modify for new users. 
+** Recommended protocol to review for new users. 
 This protocol specifies reward at one of two locations, user can change the reward each lap. Parameters: WaterValveAmt (µL), RewardLocation1 (cm), RewardLocation2 (cm), Location2Probability (0 to 1), SearchForLap (0 or 1), SearchDistance (cm). Setting SearchForLap to 1 allows the user to change the SearchDistance location at which the Bpod waits ends the trial and searches for the reset signal to start a new lap; only need to change this if lap lengths are not 180cm.
 
 ### RandomAcclimation,m:
@@ -140,6 +149,37 @@ Designed for a blank belt acclimation where reward is randomly given every 100-2
 
 ### RewardDistanceTraining.m:
 Fully controllable release of water for training. Supplies reward at given distance and immediately starts a new lap with the user input RewardDistance as the new target distance. The lap lengths change depending on the user input distance, so it is useful to train the mice to run. User Parameters: WaterValveAmt (µL), RewardDistance (cm)
+
+### BlockedRandom_noSound.m:
+A simplified version of the BlockedRandom protocol used by SV. Alternates reward location for a randomized block length, specified by the user. Parameters: WaterValveAmt (µL),  BlockMin, BlockMax, lickWindow (s), OperantProbability. BlockMin and BlockMax specify the minimum and maximum number of trials at the same reward location, but the exact number of trials per block is randomly generated each block. OperantProbability specifies the probability that any specific trial requires the animal to lick to receive a reward or not, and if the animal is required to lick then it has lickWindow seconds to lick while it's still in the hardcoded reward location zone.
+
+<hr/>
+
+The following protocol may also be helpful to review, and are grouped together since they are various editions of the same idea: operant reward and user specified reward location.
+
+### OperantFixedReward.m
+** Recommended protocol to review for new users. 
+Animal receives the reward if and only if it licks anywhere in the specified reward zone. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationDuration (cm). 
+
+### OperantFixedRewardTime.m
+** Recommended protocol to review for new users. 
+Animal receives the reward if and only if it licks anywhere in the specified reward zone in the give time. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationEnd (cm), RewardLocationDurationT (s). Note: a RewardLocationEnd is specified to ensure the Bpod doesn't get stuck waiting for a lick if the duration is very long. 
+
+### OptionalOperantFixedReward.m
+
+Identical to OperantFixedReward.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.
+
+### OptionalOperantFixedRewardTime.m
+
+Identical to OperantFixedRewardTime.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.
+
+
+### OptionalOperantFixedRewardOptionalTime.m
+
+Identical to OptionalOperantFixedRewardTime.m with the additional user parameter IsTimerOn, allowing the user to toggle whether a given trial requires the animal to lick in the specified time or not. This protocol contains all the features of the other operant protocols in this section, and as a result the parameter GUI may be confusing at first.
+
+
+<hr/>
 
 
 Older protocols (may not need be needed anymore).
@@ -153,6 +193,9 @@ Generates two output digital pulses which can be used to cue stimuli in wavesurf
 ### TwoTriggerProtocol_TwoBeambreaks.m: 
 Same as TwoTriggerProtocol but made for a belt with two beambreaks to physically mark the end and the beginning of a lap. This protocol was designed to combat the gradual change in Bpod distance calculations over the course of hundreds of laps. Parameters: WaterValveAmt (µL), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). 
 
+#### Development Notes:
+
+Bpod Protocol are fairly straightforward once you get a handle on state machine logic and binary multiplexing. Additional modules like WavePlayer require additional knowledge of device specific methods. One challenge that may arise is making sure the ports for reset, lick, and water release match the hardware configuration. Usually Bpod will give a warning, but sometimes it may not say anything so double check on all the ports and wirestates to ensure they match the needs of the system configuration.
 
 # Rig Programs and Data Analysis
 
