@@ -17,15 +17,24 @@ The experimental system makes use of a linear treadmill whose position and veloc
 
 Directory firmware used in the Teensy devices. For setup of the Teensy device, refer to https://www.pjrc.com/teensy/index.html. These firmware are written with the Teensyduino add-on in the Arduino environment.
 
+#### Development notes:
+The key challenge in developing the distance module firmware was ensuring that the voltage output accurately reflects the distance and velocity signals and match the Bpod as close as possible. The key equation used is 4.00 in. * 25.4 mm/in. * pi / 512 ticks  = 0.6234097922 mm/tick. The teensy then receives the two rotary encoder tick signals and stores time and distance value per tick to output the distance and velocity. This device needs to be powered with the right amount of current (300-500mA) or it will not run correctly. The power signal from the Sanworks Rotary Encoder is sufficient, and adding another power input without cutting the voltage pads on the hardware could lead to overloading the circuit.
+
+File Description:
+
 ### RotaryEncoderModule.ino:
 From Sanworks: https://github.com/sanworks/Bpod_RotaryEncoder_Firmware
-Firmware for the BpodRotaryEncoderModule. 
+Firmware for the BpodRotaryEncoderModule. Used by the bpod to store position as an angle of the rotary encoder.
 
 ### TeensyEncoder20200904.ino:
 
 This is the most up to date and commented firmware for calculating the distance and velocity data from the Avago HEDM-55xx Rotary Encoder with 512 tics. Pinout can be found in DistanceModulePins.pdf
 
 ![Distance Module Pins](DistanceModulePins.png)
+
+### TeensyEncoder201903401_AutoReset.ino
+
+Firmware for an at-home setup without a physical reset signal or need for Bpod interface. Exactly the same as TeensyEncoder20200904.ino except automatically resets at 180cm. 
 
 ### TeensyEncoder201904.ino:
 
