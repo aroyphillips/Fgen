@@ -77,7 +77,7 @@ The following were other software platforms initially considered. Matlab and Psy
 Initial challenges involved figuring out to read the distance from the Teensy. The trick was to combine a ``` Serial.println(distance)```  in the Teensy firmware with ``` currentPosition = fscanf(app.SerialID,'%g',4); ```
 in Matlab. Specifying the size of the string ensured that the readings were reliable and accurate.
 
-With a changing position and existing demos for moving a square on a screen, generating a single moving rectangle was straightforward. However, increasing the number of rectangles did pose some challenges, as the Psychtoolbox command ```Screen('FillRect', window, color, rect))``` takes different dimensions for 1 rectangle vs multiple rectangles. Conditional transposes were required to ensure that the size of the rectangle position matrix matched what the FillRect method requires. Additionally, Matlab surprisingly did not have clear documentation on the units of ```tic```, so I had to manually figure out that it stores .01 microseconds.
+With a changing position and existing demos for moving a square on a screen, generating a single moving rectangle was straightforward. However, increasing the number of rectangles did pose some challenges, as the Psychtoolbox command ```Screen('FillRect', window, color, rect)``` takes different dimensions for 1 rectangle vs multiple rectangles. Conditional transposes were required to ensure that the size of the rectangle position matrix matched what the FillRect method requires. Additionally, Matlab surprisingly did not have clear documentation on the units of ```tic```, so I had to manually figure out that it stores .01 microseconds.
                                                         
 
 
