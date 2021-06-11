@@ -1,0 +1,222 @@
+<!-- ?xml version='1.0' encoding='UTF-8'? -->
+<link href="/github-markdown-css/github-css.css" rel="stylesheet"/>
+<meta charset="utf-8" content="text/html"/>
+<div class="gist">
+<style class="formula-style">
+        svg.gh-md-to-html-formula {
+            fill: black;
+        }
+    </style>
+<div class="gist-file"> <!-- This is the class that is responsible for the boxing! -->
+<div class="gist-data">
+<div class="js-gist-file-update-container js-task-list-container file-box">
+<div class="file" id="article-README">
+<div class="Box-body readme blob js-code-block-container p-5 p-xl-6" id="file-docker-image-pull-md-readme" style="margin-left: 40px; margin-right: 40px; margin-top: 20px; margin-bottom: 20px">
+<article class="markdown-body entry-content container-lg" itemprop="text">
+<h1 id="user-content-sections">
+<a aria-hidden="true" class="anchor" href="#user-content-sections" id="user-content-sections"><span aria-hidden="true" class="octicon octicon-link"></span></a>Sections:</h1>
+<ul>
+<li><a href="#user-content-overview">Overview</a></li>
+<li><a href="#user-content-teensy-firmware">Teensy Firmware</a></li>
+<li><a href="#user-content-wavesurfer">Wavesurfer</a></li>
+<li><a href="#user-content-bpod-protocol">Bpod Protocol</a></li>
+<li><a href="#user-content-rig-programs-and-data-analysis">Rig Programs and Data Analysis</a></li>
+<li><a href="#user-content-current-generator">Current Generator</a></li>
+</ul>
+<h1 id="user-content-overview">
+<a aria-hidden="true" class="anchor" href="#user-content-overview" id="user-content-overview"><span aria-hidden="true" class="octicon octicon-link"></span></a>Overview</h1>
+<p>The following document details the software and firmware developed for the Magee Lab in Houston. Questions can be directed to Roy Phillips (<a href="mailto:aroyphillips@gmail.com">aroyphillips@gmail.com</a>).</p>
+<p>The experimental system makes use of a linear treadmill whose position and velocity are encoded used a Teensy microcontroller. Then for data acquisition, we use a combination of open-source software implemented in the MATLAB environment. <a href="https://wavesurfer.janelia.org/" rel="nofollow">Wavesurfer</a> from Janelia allows for online processing, plotting, and recording of neurophysiological signals, such as velocity, distance, licks, and cellular voltages. For delivering rewards and generating system triggers, we use the Bpod system from [Sanworks] (<a href="https://sanworks.io/shop/products.php?productFamily=bpod" rel="nofollow">https://sanworks.io/shop/products.php?productFamily=bpod</a>), which uses a RotaryEncoderModule to measure position, and also records event timestamps for offline validation of the Wavesurfer recording. Current injections can be done using a customized GUI in Matlab, which sends stimuli parameters to an embedded system made for Teensy.</p>
+<h1 id="user-content-teensy-firmware">
+<a aria-hidden="true" class="anchor" href="#user-content-teensy-firmware" id="user-content-teensy-firmware"><span aria-hidden="true" class="octicon octicon-link"></span></a>Teensy Firmware</h1>
+<p>Directory firmware used in the Teensy devices. For setup of the Teensy device, refer to <a href="https://www.pjrc.com/teensy/index.html" rel="nofollow">https://www.pjrc.com/teensy/index.html</a>. These firmware are written with the Teensyduino add-on in the Arduino environment.</p>
+<h4 id="user-content-development-notes">
+<a aria-hidden="true" class="anchor" href="#user-content-development-notes" id="user-content-development-notes"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development notes:</h4>
+<p>The key challenge in developing the distance module firmware was ensuring that the voltage output accurately reflects the distance and velocity signals and match the Bpod as close as possible. The key equation used is (circumference / tick) = 4.00 in. * 25.4 mm/in. * pi / 512 ticks  = 0.6234097922 mm/tick. The teensy then receives the two rotary encoder tick signals and stores time and distance value per tick to output the distance and velocity. This device needs to be powered with the right amount of current (300-500mA) or it will not run correctly. The power signal from the Sanworks Rotary Encoder is sufficient, and adding another power input without cutting the voltage pads on the hardware could lead to overloading the circuit.</p>
+<p>File Overview:</p>
+<h3 id="user-content-rotaryencodermoduleino">
+<a aria-hidden="true" class="anchor" href="#user-content-rotaryencodermoduleino" id="user-content-rotaryencodermoduleino"><span aria-hidden="true" class="octicon octicon-link"></span></a>RotaryEncoderModule.ino:</h3>
+<p>From Sanworks: <a href="https://github.com/sanworks/Bpod_RotaryEncoder_Firmware">https://github.com/sanworks/Bpod_RotaryEncoder_Firmware</a>
+Firmware for the BpodRotaryEncoderModule. Used by the bpod to store position as an angle of the rotary encoder.</p>
+<h3 id="user-content-teensyencoder20200904ino">
+<a aria-hidden="true" class="anchor" href="#user-content-teensyencoder20200904ino" id="user-content-teensyencoder20200904ino"><span aria-hidden="true" class="octicon octicon-link"></span></a>TeensyEncoder20200904.ino:</h3>
+<p>This is the most up to date and commented firmware for calculating the distance and velocity data from the Avago HEDM-55xx Rotary Encoder with 512 tics. Pinout can be found in DistanceModulePins.pdf</p>
+<p><a href="/images/DistanceModulePins.png" rel="noopener noreferrer" target="_blank"><img alt="Distance Module Pins" data-canonical-src="/images/DistanceModulePins.png" src="/images/DistanceModulePins.png" style="max-width:100%; max-height: 612px;"/></a></p>
+<h3 id="user-content-teensyencoder201903401_autoresetino">
+<a aria-hidden="true" class="anchor" href="#user-content-teensyencoder201903401_autoresetino" id="user-content-teensyencoder201903401_autoresetino"><span aria-hidden="true" class="octicon octicon-link"></span></a>TeensyEncoder201903401_AutoReset.ino</h3>
+<p>Firmware for an at-home setup without a physical reset signal or need for Bpod interface. Exactly the same as TeensyEncoder20200904.ino except automatically resets at 180cm.</p>
+<h3 id="user-content-teensyencoder201904ino">
+<a aria-hidden="true" class="anchor" href="#user-content-teensyencoder201904ino" id="user-content-teensyencoder201904ino"><span aria-hidden="true" class="octicon octicon-link"></span></a>TeensyEncoder201904.ino:</h3>
+<p>Equivalent to TeensyEncoder20200904.ino but not commented fully. Made for 512 tics encoder.</p>
+<h3 id="user-content-teensyencoder101519ino">
+<a aria-hidden="true" class="anchor" href="#user-content-teensyencoder101519ino" id="user-content-teensyencoder101519ino"><span aria-hidden="true" class="octicon octicon-link"></span></a>TeensyEncoder101519.ino:</h3>
+<p>Equivalent to TeensyEncoder201904.ino, except made for 1024 tic encoder. As a result the DIST_PER_COUNT constant is half as large as that in TeensyEncoder20200904.ino</p>
+<h3 id="user-content-lasercontrolino">
+<a aria-hidden="true" class="anchor" href="#user-content-lasercontrolino" id="user-content-lasercontrolino"><span aria-hidden="true" class="octicon octicon-link"></span></a>LaserControl.ino</h3>
+<p>Controls the output of a laser used to activate a neuronal silencer, archaerhodopsin.
+A sine wave has been demonstrated to be more effective for that control, so this firmware generates the sinusoidal output and a trigger to control the shutter. To control for rebound excitation, the sinusoid is gradually reduced when the animal's velocity remains at 0 for a specified length of time.</p>
+<h1 id="user-content-wavesurfer">
+<a aria-hidden="true" class="anchor" href="#user-content-wavesurfer" id="user-content-wavesurfer"><span aria-hidden="true" class="octicon octicon-link"></span></a>Wavesurfer</h1>
+<p>+examples Directory contains Wavesurfer User Code.</p>
+<p>These user codes allow for online analysis of the NI MAX DAQ signals, including stimulation, recording, and plotting. They were made during the early stages of the development two target paradigm, and as a result include many features not used for general paradigms.</p>
+<p>Installation instructions and documentation for wavesurfer can be found at <a href="https://wavesurfer.janelia.org/" rel="nofollow">https://wavesurfer.janelia.org/</a> . Highly recommend to read through these documentation before and while writing any new code.</p>
+<p>Remember to save all figures before closing waversurfer!!!</p>
+<p>Description of custom user codes are below:</p>
+<h3 id="user-content-treadmillprotocolm">
+<a aria-hidden="true" class="anchor" href="#user-content-treadmillprotocolm" id="user-content-treadmillprotocolm"><span aria-hidden="true" class="octicon octicon-link"></span></a>TreadMillProtocol.m:</h3>
+<p>This is the main protocol used in current experiments to record and plot real time neurophysiological data. This generates a plot of licks, velocities, and reward releases for each lap, but also plots information no longer used in general experimentation, such as the target reward location. Remember to save all figures before closing waversurfer!!!</p>
+<p>Description of notable methods are below.</p>
+<h5 id="user-content-notable-methods">
+<a aria-hidden="true" class="anchor" href="#user-content-notable-methods" id="user-content-notable-methods"><span aria-hidden="true" class="octicon octicon-link"></span></a>Notable Methods:</h5>
+<h5 id="user-content-delete">
+<a aria-hidden="true" class="anchor" href="#user-content-delete" id="user-content-delete"><span aria-hidden="true" class="octicon octicon-link"></span></a>delete():</h5>
+<p>closes the raster plot and the velocity plot.</p>
+<h5 id="user-content-startingrun">
+<a aria-hidden="true" class="anchor" href="#user-content-startingrun" id="user-content-startingrun"><span aria-hidden="true" class="octicon octicon-link"></span></a>startingRun():</h5>
+<p>Initializes parameters and arrays stored on each lap.</p>
+<h5 id="user-content-completingrun-stoppingrun-abortingrun">
+<a aria-hidden="true" class="anchor" href="#user-content-completingrun-stoppingrun-abortingrun" id="user-content-completingrun-stoppingrun-abortingrun"><span aria-hidden="true" class="octicon octicon-link"></span></a>completingRun(), stoppingRun(), abortingRun():</h5>
+<p>Include an autosave command so that the figure is saved after closing wavesurfer without manually saving. If you do not go and move this file elsewhere, the figure will be overwritten on another session.</p>
+<h5 id="user-content-dataavailable">
+<a aria-hidden="true" class="anchor" href="#user-content-dataavailable" id="user-content-dataavailable"><span aria-hidden="true" class="octicon octicon-link"></span></a>dataAvailable():</h5>
+<p>Main function used for online analysis of data.</p>
+<p>obtains analog and digital data using the methods:</p>
+<div class="highlight highlight-source-matlab"><pre>analogData = wsModel.getLatestAIData();
+digitalData = wsModel.getLatestDIData();</pre></div>
+<p>The digital data provides information about the reset signal and other inputs to the PFI channel on the DAQ.
+In this specific protocol, the Reset signal appears as a 1 in the digital scans, while the RewardRelease appears as a 2.</p>
+<p>The analog data contains all the analog signals displayed on waversufer, including the licks, position, velocity and cellular voltages.</p>
+<p>If a new lap starts, based on the reset signal information, the lick and velocity plot updates to show the lick target and licks.</p>
+<h5 id="user-content-syncrasterfigandaxes_">
+<a aria-hidden="true" class="anchor" href="#user-content-syncrasterfigandaxes_" id="user-content-syncrasterfigandaxes_"><span aria-hidden="true" class="octicon octicon-link"></span></a>syncRasterFigAndAxes_():</h5>
+<p>Creates the figures, axes, and labels.</p>
+<h5 id="user-content-velo2rgb">
+<a aria-hidden="true" class="anchor" href="#user-content-velo2rgb" id="user-content-velo2rgb"><span aria-hidden="true" class="octicon octicon-link"></span></a>velo2rgb():</h5>
+<p>Converts input velocity to red green and blue by first scaling the velocity up to be in the range of 380 to 800 and then converts that value to RGB array.</p>
+<h3 id="user-content-treadmillprotocol_trainingm">
+<a aria-hidden="true" class="anchor" href="#user-content-treadmillprotocol_trainingm" id="user-content-treadmillprotocol_trainingm"><span aria-hidden="true" class="octicon octicon-link"></span></a>TreadMillProtocol_training.m</h3>
+<p>This protocol was developed before TreadMillProtocol.m and autosaves every lap instead of just at the end, causing it to get slower and slower between laps as the figure gets more complicated. Does not plot the two blue line targets used during the blocked protocol, instead counts correct licks as licks with 10cm of the reward release.</p>
+<h4 id="user-content-development-notes-1">
+<a aria-hidden="true" class="anchor" href="#user-content-development-notes-1" id="user-content-development-notes-1"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development notes:</h4>
+<p>Modifying the user code requires first to know all the channels used by DAQ board. Then modifying dataAvailable() and accessing the data as described is sufficient to perform online analysis. <strong>Future work:</strong> Develop a more general and simplified wavesurfer user code that only plots what is needed and no longer designed specifically for the BlockedRandom Bpod code.</p>
+<h1 id="user-content-bpod-protocol">
+<a aria-hidden="true" class="anchor" href="#user-content-bpod-protocol" id="user-content-bpod-protocol"><span aria-hidden="true" class="octicon octicon-link"></span></a>Bpod Protocol</h1>
+<p>This directory contains BpodProtocol used to govern the behavioral cues and reward delivery. The Bpod device is useful for the delivery of precisely timed amounts of liquid reward, and maintains an online environment to keep track of position. However, its plotting features are limited as is the accuracy of its velocity measurement, so these protocol are paired with recordings using wavesurfer protocol.</p>
+<p>The core logic of BpodProtocol is the State machine. These states include conditions that end the state and directions for which state to transition next. All possible input and output events are listed in the settings icon in the Bpod GUI.</p>
+<p>For further reference on creating Bpod Protocol, review the Bpod wiki <a href="https://sites.google.com/site/bpoddocumentation/" rel="nofollow">https://sites.google.com/site/bpoddocumentation/</a></p>
+<h4 id="user-content-binary-state-notation">
+<a aria-hidden="true" class="anchor" href="#user-content-binary-state-notation" id="user-content-binary-state-notation"><span aria-hidden="true" class="octicon octicon-link"></span></a>Binary State Notation</h4>
+<p>A note on one event state notation that appears in the sample protocol not mentioned on the wiki site is the use of binary to specify the output signal:</p>
+<p>Any of the outputs may be multiplexed to have 2^N different signals, where N is the number of ports. For example, a watervalve may have 3 ports, as does the WireOut signal. To encode individual output, add 2^i for all i ports that you want to turn on, indexing from 0 up to N-1.</p>
+<p>To output only on WireOut1, the event would be: {‘WireState, 2^0} or equivalently, {‘WireState, 1}. To output on both WireOut1 and WireOut3, the event would be {‘Wirestate’, 2^0+2^2}, equivalently {‘WireState’, 5}. The function bin2dec may be helpful as one can provide a string representing the WireState and it will output the equivalent decimal form. So, output on both WireOut1 and WireOut2 would be {‘WireState’,  bin2dec(’011’)}.</p>
+<hr/>
+An overview of the files is below:
+<p>The recommended protocol illustrate how to set up the state machine, set the RotaryEncoder parameters and change the thresholds on a trial by trial basis. Additionally, for the protocol where the exact distance is important, ProbabilisticReward establishes a WaitForReset state to begin the state machine, ensuring that each trial is synched exactly with the belt.</p>
+<p>File overview:</p>
+<h3 id="user-content-protocoltemplatem">
+<a aria-hidden="true" class="anchor" href="#user-content-protocoltemplatem" id="user-content-protocoltemplatem"><span aria-hidden="true" class="octicon octicon-link"></span></a>ProtocolTemplate.m:</h3>
+<p>Provides the commands and basic state machine logic needed to interface with the Bpod and develop further protocol.</p>
+<p>Recommended protocol to review:</p>
+<h3 id="user-content-probabilisticreward2m">
+<a aria-hidden="true" class="anchor" href="#user-content-probabilisticreward2m" id="user-content-probabilisticreward2m"><span aria-hidden="true" class="octicon octicon-link"></span></a>ProbabilisticReward2.m</h3>
+<p>** Recommended protocol to review for new users.
+This protocol specifies reward at one of two locations, user can change the reward each lap. Parameters: WaterValveAmt (µL), RewardLocation1 (cm), RewardLocation2 (cm), Location2Probability (0 to 1), SearchForLap (0 or 1), SearchDistance (cm). Setting SearchForLap to 1 allows the user to change the SearchDistance location at which the Bpod waits ends the trial and searches for the reset signal to start a new lap; only need to change this if lap lengths are not 180cm.</p>
+<h3 id="user-content-randomacclimationm">
+<a aria-hidden="true" class="anchor" href="#user-content-randomacclimationm" id="user-content-randomacclimationm"><span aria-hidden="true" class="octicon octicon-link"></span></a>RandomAcclimation,m:</h3>
+<p>Designed for a blank belt acclimation where reward is randomly given every 100-260cm that the animal runs, so that the expected reward location is every 180cm. User has control of the range about and expected value. Parameters: WaterValveAmt (µL), RewardCenter (cm), RewardRange (cm). RewardCenter and RewardRange specify  the center and range of the uniform distribution from which the reward location is chosen, updated each lap. This protocol is useful to train animals that already run to lick.</p>
+<h3 id="user-content-rewarddistancetrainingm">
+<a aria-hidden="true" class="anchor" href="#user-content-rewarddistancetrainingm" id="user-content-rewarddistancetrainingm"><span aria-hidden="true" class="octicon octicon-link"></span></a>RewardDistanceTraining.m:</h3>
+<p>Fully controllable release of water for training. Supplies reward at given distance and immediately starts a new lap with the user input RewardDistance as the new target distance. The lap lengths change depending on the user input distance, so it is useful to train the mice to run. User Parameters: WaterValveAmt (µL), RewardDistance (cm)</p>
+<h3 id="user-content-blockedrandom_nosoundm">
+<a aria-hidden="true" class="anchor" href="#user-content-blockedrandom_nosoundm" id="user-content-blockedrandom_nosoundm"><span aria-hidden="true" class="octicon octicon-link"></span></a>BlockedRandom_noSound.m:</h3>
+<p>A simplified version of the BlockedRandom protocol used by SV. Alternates reward location for a randomized block length, specified by the user. Parameters: WaterValveAmt (µL),  BlockMin, BlockMax, lickWindow (s), OperantProbability. BlockMin and BlockMax specify the minimum and maximum number of trials at the same reward location, but the exact number of trials per block is randomly generated each block. OperantProbability specifies the probability that any specific trial requires the animal to lick to receive a reward or not, and if the animal is required to lick then it has lickWindow seconds to lick while it's still in the hardcoded reward location zone.</p>
+<hr/>
+<p>The following protocol may also be helpful to review, and are grouped together since they are various editions of the same idea: operant reward and user specified reward location.</p>
+<h3 id="user-content-operantfixedrewardm">
+<a aria-hidden="true" class="anchor" href="#user-content-operantfixedrewardm" id="user-content-operantfixedrewardm"><span aria-hidden="true" class="octicon octicon-link"></span></a>OperantFixedReward.m</h3>
+<p>** Recommended protocol to review for new users.
+Animal receives the reward if and only if it licks anywhere in the specified reward zone. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationDuration (cm).</p>
+<h3 id="user-content-operantfixedrewardtimem">
+<a aria-hidden="true" class="anchor" href="#user-content-operantfixedrewardtimem" id="user-content-operantfixedrewardtimem"><span aria-hidden="true" class="octicon octicon-link"></span></a>OperantFixedRewardTime.m</h3>
+<p>** Recommended protocol to review for new users.
+Animal receives the reward if and only if it licks anywhere in the specified reward zone in the give time. Parameters: WaterValveAmt (µL), RewardLocationStart (cm), RewardLocationEnd (cm), RewardLocationDurationT (s). Note: a RewardLocationEnd is specified to ensure the Bpod doesn't get stuck waiting for a lick if the duration is very long.</p>
+<h3 id="user-content-optionaloperantfixedrewardm">
+<a aria-hidden="true" class="anchor" href="#user-content-optionaloperantfixedrewardm" id="user-content-optionaloperantfixedrewardm"><span aria-hidden="true" class="octicon octicon-link"></span></a>OptionalOperantFixedReward.m</h3>
+<p>Identical to OperantFixedReward.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.</p>
+<h3 id="user-content-optionaloperantfixedrewardtimem">
+<a aria-hidden="true" class="anchor" href="#user-content-optionaloperantfixedrewardtimem" id="user-content-optionaloperantfixedrewardtimem"><span aria-hidden="true" class="octicon octicon-link"></span></a>OptionalOperantFixedRewardTime.m</h3>
+<p>Identical to OperantFixedRewardTime.m with the additional user parameter IsOperant, allowing the user to toggle whether a given trial requires a lick or not.</p>
+<h3 id="user-content-optionaloperantfixedrewardoptionaltimem">
+<a aria-hidden="true" class="anchor" href="#user-content-optionaloperantfixedrewardoptionaltimem" id="user-content-optionaloperantfixedrewardoptionaltimem"><span aria-hidden="true" class="octicon octicon-link"></span></a>OptionalOperantFixedRewardOptionalTime.m</h3>
+<p>Identical to OptionalOperantFixedRewardTime.m with the additional user parameter IsTimerOn, allowing the user to toggle whether a given trial requires the animal to lick in the specified time or not. This protocol contains all the features of the other operant protocols in this section, and as a result the parameter GUI may be confusing at first.</p>
+<hr/>
+<p>Older protocols (may not need be needed anymore).</p>
+<h3 id="user-content-flexiblerewardfishm">
+<a aria-hidden="true" class="anchor" href="#user-content-flexiblerewardfishm" id="user-content-flexiblerewardfishm"><span aria-hidden="true" class="octicon octicon-link"></span></a>FlexibleRewardFish.m:</h3>
+<p>allows the user to change the location on a trial by trial basis. To use this protocol to vary the reward location each lap, simply change the location of RewardLocation1. Additional features include the ability to randomly place the reward at one of two locations. To include a second reward location, change the Location2Probability value to a non-zero number between 0 and 1, and set the RewardLocation2. The parameter WaterValveAmt allows the user to control the microliter amount of water provided. Includes legacy code that uses the wavePlayer module to play one of three sounds and flash lights, but these features are no longer used for this protocol.</p>
+<h3 id="user-content-twotriggerprotocolm">
+<a aria-hidden="true" class="anchor" href="#user-content-twotriggerprotocolm" id="user-content-twotriggerprotocolm"><span aria-hidden="true" class="octicon octicon-link"></span></a>TwoTriggerProtocol.m:</h3>
+<p>Generates two output digital pulses which can be used to cue stimuli in wavesurfer or other stimuli control software if not using the current generator module. Parameters: WaterValveAmt (µL), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm). Lap length cannot exceed 179.</p>
+<h3 id="user-content-twotriggerprotocol_twobeambreaksm">
+<a aria-hidden="true" class="anchor" href="#user-content-twotriggerprotocol_twobeambreaksm" id="user-content-twotriggerprotocol_twobeambreaksm"><span aria-hidden="true" class="octicon octicon-link"></span></a>TwoTriggerProtocol_TwoBeambreaks.m:</h3>
+<p>Same as TwoTriggerProtocol but made for a belt with two beambreaks to physically mark the end and the beginning of a lap. This protocol was designed to combat the gradual change in Bpod distance calculations over the course of hundreds of laps. Parameters: WaterValveAmt (µL), RewardDistance (cm), StimulusTrigger1 (cm), StimulusTrigger2 (cm).</p>
+<h4 id="user-content-development-notes-2">
+<a aria-hidden="true" class="anchor" href="#user-content-development-notes-2" id="user-content-development-notes-2"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development Notes:</h4>
+<p>Bpod Protocol are fairly straightforward once you get a handle on state machine logic and binary multiplexing. Additional modules like WavePlayer require additional knowledge of device specific methods. One challenge that may arise is making sure the ports for reset, lick, and water release match the hardware configuration. Usually Bpod will give a warning, but sometimes it may not say anything so double check on all the ports and wirestates to ensure they match the needs of the system configuration.</p>
+<h1 id="user-content-rig-programs-and-data-analysis">
+<a aria-hidden="true" class="anchor" href="#user-content-rig-programs-and-data-analysis" id="user-content-rig-programs-and-data-analysis"><span aria-hidden="true" class="octicon octicon-link"></span></a>Rig Programs and Data Analysis</h1>
+<p>Directory contains scripts used to analyze Bpod and Wavesurfer data.</p>
+<h3 id="user-content-twocamm">
+<a aria-hidden="true" class="anchor" href="#user-content-twocamm" id="user-content-twocamm"><span aria-hidden="true" class="octicon octicon-link"></span></a>TwoCam.m:</h3>
+<p>A useful rig program to show both cameras connected to the system. To run, simply ensure that TwoCam is on the path and then type TwoCam into the command window.</p>
+<h3 id="user-content-recreateplotm">
+<a aria-hidden="true" class="anchor" href="#user-content-recreateplotm" id="user-content-recreateplotm"><span aria-hidden="true" class="octicon octicon-link"></span></a>recreatePlot.m:</h3>
+<p>Given a file path of the wavesurfer h5 file, recreates the plot of licks, velocity and reward release that is generated online. Note: due to differences in calculations and online jitter, these plots are not exactly the same.</p>
+<h3 id="user-content-analyzeshortlapsm">
+<a aria-hidden="true" class="anchor" href="#user-content-analyzeshortlapsm" id="user-content-analyzeshortlapsm"><span aria-hidden="true" class="octicon octicon-link"></span></a>analyzeShortLaps.m:</h3>
+<p>Was used to understand discrepancies between the Bpod distance and the Teensy generated distance in Bpod. This script may be useful in learning how to extract data from the Bpod session variables and Wavesurfer h5 files.</p>
+<p>Given a Bpod file name, plots several laps to analyze the position and velocity recorded within the Bpod machine. Additionally, given a wavesurfer h5 file, measures the velocity for each lap and compares it to the Bpod velocity.</p>
+<h1 id="user-content-current-generator">
+<a aria-hidden="true" class="anchor" href="#user-content-current-generator" id="user-content-current-generator"><span aria-hidden="true" class="octicon octicon-link"></span></a>Current Generator</h1>
+<p>This is associated code for a Matlab based user interface to send parameters to a Teensy microcontroller to work as a function generator. The experimentalist can update these parameters on-the-fly, for trial-by-trial modifications to the stimulus. Requires a headstage amplifier set to voltage clamp mode, using the gate input for the digital pulse for depolarizing pulses, or mid stimulus pulse.</p>
+<p>The .mlapp files generate the GUI used by the experimenter. To use this, simply type the file name into the command window. A GUI will show up that looks like this:</p>
+<p><a href="/images/GUI_panels.png" rel="noopener noreferrer" target="_blank"><img alt="GUI" data-canonical-src="/images/GUI_panels.png" src="/images/GUI_panels.png" style="max-width:100%; max-height: 986px;"/></a></p>
+<p>This GUI consists of the three panels: the stimulus parameter tabs, the stimulus preview plots, and the checkbox and update panel.</p>
+<p>Before Updating any stimuli parameters, enter in the COM port where the Teensy current generator device is located. Then move the Session slider from Clear to On and make sure no warnings appeared that the COM # was incorrect or that the COM is unavailable, possibly due to use in another window.</p>
+<p>The stimulus parameter tab panel allows the user to input a starting location for the stimulus to begin, and a duration for that stimulus in either milliseconds or cm. The Digital Pulse can be used to enter the command input of the head stage amplifier, which can then be scaled to be positive or negative. All other stimuli are analog and enter the other input of the headstone amplifier. The Analog Pulse is similar to the digital pulse but can only take on amplitudes from 0 to 6.6 nA. The Pulse Train parameters include Period and Pulse width parameters, which can be either in Hz or cm. The Triangle pulse allows the user to generate a ramp-like potential with a start, peak, and end position, and cannot be combined with other analog stimuli. The Gaussian pulse generates a gaussian curve that can be asymmetrically balanced with different widths at half-max, and  cannot be combined with other analog stimuli.</p>
+<p>The checkboxes allow the user to specify which stimuli are on at a given time. The Stimulus Preview plot shows what will be generated if the current parameters are sent, and the Time-Based Stimuli figure provides a more precise view of any stimuli parameters based on time rather than position.</p>
+<p>Once the stimuli parameters are at the desired values, the user can press the Update button to send these parameters to the Teensy device. Any improper values will be rejected with a warning message and the parameters will not send until the user fixes the values and presses Update again. These parameters will then update after the next reset signal.</p>
+<p>The .ino firmware allows the Teensy to read incoming stream of characters from the GUI and generate the stimuli based on those values. To set up the current generator device please refer to the pin-out sheet in CurrentRampModulePins.pdf</p>
+<p><a href="/images/CurrentRampModulePins.png" rel="noopener noreferrer" target="_blank"><img alt="Current Module Pins" data-canonical-src="/images/CurrentRampModulePins.png" src="/images/CurrentRampModulePins.png" style="max-width:100%; max-height: 612px;"/></a></p>
+<p>Versions currently available:</p>
+<p>** Recommended to use Version 1.1 or Version 3.</p>
+<h3 id="user-content-version-1">
+<a aria-hidden="true" class="anchor" href="#user-content-version-1" id="user-content-version-1"><span aria-hidden="true" class="octicon octicon-link"></span></a>Version 1:</h3>
+<p>This version provides the 5 basic stimuli types (Digital Pulse, Pulse, Pulse Train, Triangle, Gaussian), but only supports pulse trains up to 70 Hz period.</p>
+<p>The associated files are Controllable_Fgen_v10.mlapp &amp; fgen_teensy_03192020.ino.</p>
+<h3 id="user-content-version-11">
+<a aria-hidden="true" class="anchor" href="#user-content-version-11" id="user-content-version-11"><span aria-hidden="true" class="octicon octicon-link"></span></a>Version 1.1:</h3>
+<p>This version provides the 5 basic stimuli types (Digital Pulse, Pulse, Pulse Train, Triangle, Gaussian), and supports pulse trains up to 300 Hz period.</p>
+<p>The associated files are Controllable_Fgen_v10_FasterConsistentSerial.mlapp and fgen_teensy_04272020_faster_ConsistentSerial.ino.</p>
+<h3 id="user-content-version-12">
+<a aria-hidden="true" class="anchor" href="#user-content-version-12" id="user-content-version-12"><span aria-hidden="true" class="octicon octicon-link"></span></a>Version 1.2:</h3>
+<p>This version is identical to Version1.1 with a key additional feature: minimum velocity required for stimulation. On the front panel there are 3 additional inputs: a Minimum Velocity checkbox, a minimum distance input and a Query time input. This allows the user to specify a threshold below which all stimulation are turned off. The default is 1cm/200ms which is 5cm/s. This means, that the animal must travel at least 1cm in 200ms for stimulation to be on, so if it travels 0.5cm in the last 200ms then the stimulation will turn off, and will not turn on again the animal travels 1cm in at minimum the next 200ms. Turning off all stimuli works for both distance and time based stimulation, but for time based, stopped time will subtract from the overall time as it is currently designed. So, if there is a 2second long pulse and the animals stops for 500ms after 1 second of stimulation, the pulse will not come back on for another 200ms (query time), leaving only 300 more ms of pulse stimulation. Future work can include preserving the time duration of the stimuli.</p>
+<p>The associated files are Controllable_Fgen_v30_Stopping.mlapp and fgen_teensy_061021_minimumVelo.ino</p>
+<h3 id="user-content-version-2">
+<a aria-hidden="true" class="anchor" href="#user-content-version-2" id="user-content-version-2"><span aria-hidden="true" class="octicon octicon-link"></span></a>Version 2:</h3>
+<p>This version provides the 5 basic stimuli types (Digital Pulse, Pulse, Pulse Train, Triangle, Gaussian), with an additional independent pulse train that can be run at the same time as the pulse or the other pulse train. Only pulse trains up to 70 Hz period are supported.</p>
+<p>The associated files are Controllable_Fgen_v12_TwoTrains.mlapp and fgen_teensy_04012020_TwoTrains.ino.</p>
+<h3 id="user-content-version-3">
+<a aria-hidden="true" class="anchor" href="#user-content-version-3" id="user-content-version-3"><span aria-hidden="true" class="octicon octicon-link"></span></a>Version 3:</h3>
+<p>This version provides the 5 basic stimuli types (Digital Pulse, Pulse, Pulse Train, Triangle, Gaussian), with an additional independent pulse train that can be run at the same time as the pulse or the other pulse train. Pulse trains up to 300 Hz period are supported.</p>
+<p>The associated files are Controllable_Fgen_v13_TwoTrainsFaster.mlapp and fgen_teensy_04062020_TwoTrainsFasterMicros.ino.</p>
+<h4 id="user-content-development-notes-3">
+<a aria-hidden="true" class="anchor" href="#user-content-development-notes-3" id="user-content-development-notes-3"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development notes:</h4>
+<p>This system was motivated by the desire to create flexible, precise stimulation based on the animals position and velocity. Prior iterations explored the possibility only in Matlab, but Matlab does not seem to provide the range of stimuli or precision needed. The Teensy firmware logic rests on first receiving serial data from Matlab, parsing and storing those parameters at the end of each lap, and then generating the correct voltage shape based on those parameters. Challenges included precise timing figuring out how to implement piecewise functions and activate if statement flags reliably. The pulse train is by far the most challenging stimuli, especially when it is in time duration or time-based spiking, as it requires quick changes in pulseTrain flags that were hard to debug. One challenge that remains is the interrupt signal, which needs to be fast and synced to the teensy distance very well. If the animal runs too fast, there may be a cm or 2 of drift due to the subtraction logic used to figure out the dc bias of the distance module. Future work may consider migrating away from the Teensy as the ADC is not as clean as more specialized ADC boards.</p>
+</article>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

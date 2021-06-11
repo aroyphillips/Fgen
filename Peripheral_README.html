@@ -1,0 +1,89 @@
+<!-- ?xml version='1.0' encoding='UTF-8'? -->
+<link href="/github-markdown-css/github-css.css" rel="stylesheet"/>
+<meta charset="utf-8" content="text/html"/>
+<div class="gist">
+<style class="formula-style">
+        svg.gh-md-to-html-formula {
+            fill: black;
+        }
+    </style>
+<div class="gist-file"> <!-- This is the class that is responsible for the boxing! -->
+<div class="gist-data">
+<div class="js-gist-file-update-container js-task-list-container file-box">
+<div class="file" id="article-Peripheral_README">
+<div class="Box-body readme blob js-code-block-container p-5 p-xl-6" id="file-docker-image-pull-md-readme" style="margin-left: 40px; margin-right: 40px; margin-top: 20px; margin-bottom: 20px">
+<article class="markdown-body entry-content container-lg" itemprop="text">
+<h1 id="user-content-peripheral-stimuli">
+<a aria-hidden="true" class="anchor" href="#user-content-peripheral-stimuli" id="user-content-peripheral-stimuli"><span aria-hidden="true" class="octicon octicon-link"></span></a>Peripheral Stimuli</h1>
+<ul>
+<li><a href="#user-content-video-demonstration">Video Demonstration</a></li>
+<li><a href="#user-content-setup">Setup</a></li>
+<li><a href="#user-content-using-the-gui">Using the GUI</a></li>
+<li><a href="#user-content-development-notes">Development Notes</a></li>
+</ul>
+<p>The goal of this project was to display customizable visual stimuli based on the position and velocity of the animal.</p>
+<p>Currently, the system allows the user to generate various rectangles that move in proportion to the animal's position, as well as display a separate rectangle or set of rectangles.</p>
+<h2 id="user-content-video-demonstration">
+<a aria-hidden="true" class="anchor" href="#user-content-video-demonstration" id="user-content-video-demonstration"><span aria-hidden="true" class="octicon octicon-link"></span></a>Video Demonstration:</h2>
+<p><a href="https://www.youtube.com/watch?v=NoDWEkQQQuM" rel="nofollow">https://www.youtube.com/watch?v=NoDWEkQQQuM</a></p>
+<h2 id="user-content-setup">
+<a aria-hidden="true" class="anchor" href="#user-content-setup" id="user-content-setup"><span aria-hidden="true" class="octicon octicon-link"></span></a>Setup</h2>
+<p>To set up this system, first make sure that the Teensy Distance firmware includes a line that says</p>
+<pre><code>Serial.println(distance);
+</code></pre>
+<p>right before the analogWrite command, and that no other Serial print statements exist.</p>
+<p>Then, ensure that Psychtoolbox (<a href="http://psychtoolbox.org/" rel="nofollow">http://psychtoolbox.org/</a>) is installed and on the path. A simple way to test this is to type out one of the existing demos in the command window. I like to use <code>MovingSquareDemo</code> which displays a red square oscillating on the screen. (Note: running this demo before every trial also ensures that Psychtoolbox can access the screen, which was finnicky on my laptop. To fix the screen issue, I would either rerun the MovingSquareDemo or restart my computer. I was unable to access the screen while Screen Recording, so further work is needed with an experimental setup to ensure reliable acces to the display screen.)</p>
+<p>With the Teensy accurately printing distances to Matlab and PsychToolBox accessing the screen, the GUI is ready for use.</p>
+<h2 id="user-content-using-the-gui">
+<a aria-hidden="true" class="anchor" href="#user-content-using-the-gui" id="user-content-using-the-gui"><span aria-hidden="true" class="octicon octicon-link"></span></a>Using the GUI</h2>
+<p>The UI Figure that shows up looks has two panels, including tabs for different stimuli.</p>
+<p><a href="/images/peripheral_GUI.png" rel="noopener noreferrer" target="_blank"><img alt="Peripheral_GUI" data-canonical-src="/images/peripheral_GUI.png" src="/images/peripheral_GUI.png" style="max-width:100%; max-height: 1026px;"/></a></p>
+<p>The tabs allow the user to specify properties of the rectangles. Namely, the number of rectangles (N), their total width (W) as a percentage of the screen, and the height (H) as a percent of the screen. At any given moment there will be N number of rectangles, which in total take up W percent of the screen width, and take up H% of the screen height. Currently, the rectangles will always be vertically centered and move laterally as the animal moves. These rectangles are evenly spaced apart, but each N group of rectangles may have a bigger horizontal gap. The user may also select the color of these rectangles, and the options are White, Gray, Green, Blue, or Red, but any RGB array can work in the actual code portion that calls the rectangles.</p>
+<h4 id="user-content-motion-cue-tab">
+<a aria-hidden="true" class="anchor" href="#user-content-motion-cue-tab" id="user-content-motion-cue-tab"><span aria-hidden="true" class="octicon octicon-link"></span></a>Motion Cue Tab</h4>
+<p>The rectangle(s) always on display and move with the animal.</p>
+<h4 id="user-content-reward-stimuli-tab">
+<a aria-hidden="true" class="anchor" href="#user-content-reward-stimuli-tab" id="user-content-reward-stimuli-tab"><span aria-hidden="true" class="octicon octicon-link"></span></a>Reward Stimuli Tab</h4>
+<p>The rectangle(s) display only when the animal reaches the specified Reward Location. Because this uses serial printing and not voltages, mm precision is possible. The stimuli will display for the duration specified which can be in distance or time. (Note: the stimuli is currently set to wrap around the screen if the duration is long enough. Future work can include a screen width duration feature or to turn off wrap around and simply stop displaying the rectangles when their position leaves the screen.)</p>
+<h4 id="user-content-manual-stimuli-tab">
+<a aria-hidden="true" class="anchor" href="#user-content-manual-stimuli-tab" id="user-content-manual-stimuli-tab"><span aria-hidden="true" class="octicon octicon-link"></span></a>Manual Stimuli Tab</h4>
+<p>Currently a placeholder for future possible features. Does not do anything at the moment. The idea behind this is to allow the user to manually flash a stimuli at the click of a button which are on the lower panel of the GUI. However, this feature requires an external screen to access the GUI at the same time as the stimuli is being displayed. Additionally, testing will be needed to see what priority the button clicks get in the code.</p>
+<h4 id="user-content-lower-panel">
+<a aria-hidden="true" class="anchor" href="#user-content-lower-panel" id="user-content-lower-panel"><span aria-hidden="true" class="octicon octicon-link"></span></a>Lower panel</h4>
+<p>The checkboxes determine which stimuli are shown, so check the motion cue to show the rectangles with the parameters entered in the motion cue tab, and check the reward stimuli to show the rectangles entered in the reward stimuli tab. The lap distance is default to 180, and is used to scale the current position. The Cue Speed edit field determines the speed of the rectangles relative to the animals velocity, so 2 would move twice as fast as 1.</p>
+<p>Finally, the Session switch and COM# edit field are identical in purpose to the Current Generator GUI, and tell MATLAB which COM# to begin a session with for communication. Session must be turned on to begin displaying stimuli.</p>
+<p>Finally, once all the parameters are entered as desired, flip the display cues switch to On and the stimuli will begin to display.</p>
+<h4 id="user-content-changing-the-stimuli">
+<a aria-hidden="true" class="anchor" href="#user-content-changing-the-stimuli" id="user-content-changing-the-stimuli"><span aria-hidden="true" class="octicon octicon-link"></span></a>Changing the stimuli</h4>
+<p>Currently, the stimuli will end on the click of any keyboard button. Then, you can enter in new stimuli and flip the switch to off and back to on again to display the new stimuli. Future work with an external display may involve changing the while loop to be tied to the Display Cue Switch rather than a keyboard click.</p>
+<hr/>
+<h2 id="user-content-development-notes">
+<a aria-hidden="true" class="anchor" href="#user-content-development-notes" id="user-content-development-notes"><span aria-hidden="true" class="octicon octicon-link"></span></a>Development Notes</h2>
+<p>The following were other software platforms initially considered. Matlab and Psychtoolbox were chosen due to accessibility, learning curve, and sufficient graphics power, but others may provide more precise timing or more rich stimuli. Of the following BonVision was strongly considered because it was demonstrated to have much more precise timing due to direct access to the computer graphics card, but does require Windows.</p>
+<ul>
+<li>BonVision <a href="https://bonvision.github.io/info/Home/" rel="nofollow">https://bonvision.github.io/info/Home/</a>
+</li>
+<li>LED Matrices
+<ul>
+<li>MAX7219 driver with RS232 library</li>
+</ul>
+</li>
+<li>Quake2:
+<ul>
+<li>Used in <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2771429/" rel="nofollow">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2771429/</a>
+</li>
+</ul>
+</li>
+<li>Epic Games Unreal Engine</li>
+<li>OGRE 3D (<a href="https://www.ogre3d.org/" rel="nofollow">https://www.ogre3d.org/</a>)</li>
+</ul>
+<p>Initial challenges involved figuring out to read the distance from the Teensy. The trick was to combine a <code> Serial.println(distance)</code>  in the Teensy firmware with <code>currentPosition = fscanf(app.SerialID,'%g',4);</code>
+in Matlab. Specifying the size of the string ensured that the readings were reliable and accurate.</p>
+<p>With a changing position and existing demos for moving a square on a screen, generating a single moving rectangle was straightforward. However, increasing the number of rectangles did pose some challenges, as the Psychtoolbox command <code>Screen('FillRect', window, color, rect)</code> takes different dimensions for 1 rectangle vs multiple rectangles. Conditional transposes were required to ensure that the size of the rectangle position matrix matched what the FillRect method requires. Additionally, Matlab surprisingly did not have clear documentation on the units of <code>tic</code>, so I had to manually figure out that it stores .01 microseconds.</p>
+</article>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
